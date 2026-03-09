@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EEG TDA Analysis — ADHD</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
+    h1 { font-size: 1.6em; border-bottom: 2px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 1.2em; margin-top: 40px; color: #444; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    h3 { font-size: 1em; margin-top: 24px; color: #666; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 6px 0; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin: 8px 0; }
+    .tag { font-size: 0.75em; background: #eef; color: #336; border-radius: 3px; padding: 1px 6px; margin-left: 6px; }
+    .tag.png { background: #efe; color: #363; }
+  </style>
+</head>
+<body>
+
+<h1>EEG TDA Analysis — ADHD Single Subject</h1>
+<p>19-channel, 128 Hz EEG. Connectivity measures: coherence, wPLI, correlation across delta, theta, alpha, beta, gamma bands.</p>
+
+<!-- ── RAW ─────────────────────────────────────────────────────────────── -->
+<h2>Raw Epochs</h2>
+
+<h3>Connectivity</h3>
+<ul>
+  <li><a href="raw/connectivity_heatmaps.png" target="_blank">Connectivity Heatmaps</a> <span class="tag png">PNG</span></li>
+  <li><a href="raw/network_viz.png" target="_blank">Network Visualization</a> <span class="tag png">PNG</span></li>
+  <li><a href="raw/edge_weight_distributions.png" target="_blank">Edge Weight Distributions</a> <span class="tag png">PNG</span></li>
+  <li><a href="raw/metric_space_dendrograms.png" target="_blank">Metric Space Dendrograms</a> <span class="tag png">PNG</span></li>
+</ul>
+
+<h3>Topology (TDA)</h3>
+<ul>
+  <li><a href="raw/betti_0_curves.html" target="_blank">Betti 0 Curves</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/betti_1_curves.html" target="_blank">Betti 1 Curves</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/euler_curves.html" target="_blank">Euler Characteristic Curves</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/persistence_diagrams.html" target="_blank">Persistence Diagrams</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/persistence_barcodes.html" target="_blank">Persistence Barcodes</a> <span class="tag">HTML</span></li>
+</ul>
+
+<h3>Graph Metrics</h3>
+<ul>
+  <li><a href="raw/graph_metrics.png" target="_blank">Graph Metrics</a> <span class="tag png">PNG</span></li>
+</ul>
+
+<h3>Simplicial Filtrations — Coherence</h3>
+<ul>
+  <li><a href="raw/simplicial_filtration_coherence_delta.html" target="_blank">Delta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_coherence_theta.html" target="_blank">Theta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_coherence_alpha.html" target="_blank">Alpha</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_coherence_beta.html" target="_blank">Beta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_coherence_gamma.html" target="_blank">Gamma</a> <span class="tag">HTML</span></li>
+</ul>
+
+<h3>Simplicial Filtrations — wPLI</h3>
+<ul>
+  <li><a href="raw/simplicial_filtration_wpli_delta.html" target="_blank">Delta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_wpli_theta.html" target="_blank">Theta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_wpli_alpha.html" target="_blank">Alpha</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_wpli_beta.html" target="_blank">Beta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_wpli_gamma.html" target="_blank">Gamma</a> <span class="tag">HTML</span></li>
+</ul>
+
+<h3>Simplicial Filtrations — Correlation</h3>
+<ul>
+  <li><a href="raw/simplicial_filtration_correlation_delta.html" target="_blank">Delta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_correlation_theta.html" target="_blank">Theta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_correlation_alpha.html" target="_blank">Alpha</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_correlation_beta.html" target="_blank">Beta</a> <span class="tag">HTML</span></li>
+  <li><a href="raw/simplicial_filtration_correlation_gamma.html" target="_blank">Gamma</a> <span class="tag">HTML</span></li>
+</ul>
+
+<!-- ── CSD ─────────────────────────────────────────────────────────────── -->
+<h2>CSD-Transformed Epochs</h2>
+
+<h3>Connectivity</h3>
+<ul>
+  <li><a href="csd/connectivity_heatmaps.png" target="_blank">Connectivity Heatmaps</a> <span class="tag png">PNG</span></li>
+  <li><a href="csd/network_viz.png" target="_blank">Network Visualization</a> <span class="tag png">PNG</span></li>
+  <li><a href="csd/edge_weight_distributions.png" target="_blank">Edge Weight Distributions</a> <span class="tag png">PNG</span></li>
+  <li><a href="csd/metric_space_dendrograms.png" target="_blank">Metric Space Dendrograms</a> <span class="tag png">PNG</span></li>
+</ul>
+
+<h3>Topology (TDA)</h3>
+<ul>
+  <li><a href="csd/betti_0_curves.html" target="_blank">Betti 0 Curves</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/betti_1_curves.html" target="_blank">Betti 1 Curves</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/euler_curves.html" target="_blank">Euler Characteristic Curves</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/persistence_diagrams.html" target="_blank">Persistence Diagrams</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/persistence_barcodes.html" target="_blank">Persistence Barcodes</a> <span class="tag">HTML</span></li>
+</ul>
+
+<h3>Graph Metrics</h3>
+<ul>
+  <li><a href="csd/graph_metrics.png" target="_blank">Graph Metrics</a> <span class="tag png">PNG</span></li>
+</ul>
+
+<h3>Simplicial Filtrations — Coherence</h3>
+<ul>
+  <li><a href="csd/simplicial_filtration_coherence_delta.html" target="_blank">Delta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_coherence_theta.html" target="_blank">Theta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_coherence_alpha.html" target="_blank">Alpha</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_coherence_beta.html" target="_blank">Beta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_coherence_gamma.html" target="_blank">Gamma</a> <span class="tag">HTML</span></li>
+</ul>
+
+<h3>Simplicial Filtrations — wPLI</h3>
+<ul>
+  <li><a href="csd/simplicial_filtration_wpli_delta.html" target="_blank">Delta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_wpli_theta.html" target="_blank">Theta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_wpli_alpha.html" target="_blank">Alpha</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_wpli_beta.html" target="_blank">Beta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_wpli_gamma.html" target="_blank">Gamma</a> <span class="tag">HTML</span></li>
+</ul>
+
+<h3>Simplicial Filtrations — Correlation</h3>
+<ul>
+  <li><a href="csd/simplicial_filtration_correlation_delta.html" target="_blank">Delta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_correlation_theta.html" target="_blank">Theta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_correlation_alpha.html" target="_blank">Alpha</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_correlation_beta.html" target="_blank">Beta</a> <span class="tag">HTML</span></li>
+  <li><a href="csd/simplicial_filtration_correlation_gamma.html" target="_blank">Gamma</a> <span class="tag">HTML</span></li>
+</ul>
+
+</body>
+</html>
