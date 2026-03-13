@@ -1,0 +1,7 @@
+*.mat
+*.py
+*.txt
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+docs/.cache/
