@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preprocessing Report — ADHD EEG TDA Pipeline</title>
+<style>
+  body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         margin:0;background:#f4f6f9;color:#212529}
+  .header {background:#1a1a2e;color:#fff;padding:28px 40px}
+  .header h1 {margin:0 0 6px;font-size:1.5em;font-weight:700}
+  .header p  {margin:0;color:#aab;font-size:0.9em}
+  .grid {display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:28px 40px;
+          max-width:1200px;margin:0 auto}
+  .card {background:#fff;border-radius:8px;padding:22px 26px;
+          box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .card.full {grid-column:1/-1}
+  .card h2 {margin:0 0 16px;font-size:1.05em;color:#1a1a2e;
+             border-bottom:2px solid #e9ecef;padding-bottom:8px}
+  table {width:100%;border-collapse:collapse;font-size:0.9em}
+  th {background:#f8f9fa;text-align:left;padding:8px 10px;
+       font-size:0.8em;text-transform:uppercase;color:#666;
+       border-bottom:2px solid #dee2e6}
+  td {padding:8px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+  tr:last-child td {border-bottom:none}
+  .kv {display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:0.9em}
+  .kv .k {color:#666;white-space:nowrap}
+  .kv .v {font-weight:600}
+  .note {background:#f8f9fa;border-left:3px solid #6c757d;padding:10px 14px;
+          font-size:0.85em;color:#555;border-radius:0 4px 4px 0;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>EEG TDA Pipeline — Preprocessing Report</h1>
+  <p>Generated: 2026-03-13 18:59:07 &nbsp;|&nbsp; Source: v10p.mat
+     &nbsp;|&nbsp; Subject: single ADHD subject (age 7–12, visual attention task)</p>
+</div>
+
+<div class="grid">
+
+  <!-- DATA OVERVIEW -->
+  <div class="card">
+    <h2>Data Overview</h2>
+    <div class="kv">
+      <span class="k">File</span>
+        <span class="v">v10p.mat</span>
+      <span class="k">Sampling rate</span>
+        <span class="v">128 Hz</span>
+      <span class="k">Duration</span>
+        <span class="v">111.75 s (1.86 min)</span>
+      <span class="k">Raw channels</span>
+        <span class="v">19 (standard 10-20)</span>
+      <span class="k">Channels after selection</span>
+        <span class="v">18 (Cz excluded — bilateral symmetry artifact)</span>
+      <span class="k">Original reference</span>
+        <span class="v">Linked earlobes A1/A2</span>
+      <span class="k">Unit scaling</span>
+        <span class="v">µV × 1e-6 → V (MNE internal units)</span>
+      <span class="k">Recording task</span>
+        <span class="v">Visual attention — counting cartoon characters</span>
+    </div>
+  </div>
+
+  <!-- EPOCHS -->
+  <div class="card">
+    <h2>Epochs</h2>
+    <div class="kv">
+      <span class="k">Window length</span>
+        <span class="v">2.0 s (256 samples)</span>
+      <span class="k">Overlap</span>
+        <span class="v">None</span>
+      <span class="k">Created</span>
+        <span class="v">55</span>
+      <span class="k">After AutoReject</span>
+        <span class="v">55</span>
+      <span class="k">Dropped</span>
+        <span class="v">0</span>
+      <span class="k">AutoReject strategy</span>
+        <span class="v">Interpolate 1–2 bad channels; drop if more</span>
+      <span class="k">Interpolation method</span>
+        <span class="v">Spherical spline (Perrin 1989)</span>
+    </div>
+  </div>
+
+  <!-- PREPROCESSING STEPS -->
+  <div class="card full">
+    <h2>Preprocessing Steps</h2>
+    <table>
+      <tr><th>#</th><th>Step</th><th>Status</th></tr>
+      <tr><td style="color:#888;width:32px">1</td><td><strong>Unit conversion</strong><br><span style="color:#555;font-size:0.9em">Raw ADC values (µV) multiplied by 1e-6 → volts for MNE compatibility</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">2</td><td><strong>Channel mapping</strong><br><span style="color:#555;font-size:0.9em">19 generic labels → standard 10-20 names; standard_1020 montage set</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">3</td><td><strong>Average re-referencing</strong><br><span style="color:#555;font-size:0.9em">Linked earlobes (A1/A2) → common average reference. Removes DC offset (~150 µV) and earlobe temporal lobe contamination.</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">4</td><td><strong>Notch filter</strong><br><span style="color:#555;font-size:0.9em">60 Hz power-line noise removed — zero-phase FIR (Kaiser window)</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">5</td><td><strong>Bandpass filter</strong><br><span style="color:#555;font-size:0.9em">1–45 Hz zero-phase FIR (firwin, Kaiser window) — removes DC drift and high-frequency muscle artifact</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">6</td><td><strong>RANSAC bad channel detection</strong><br><span style="color:#555;font-size:0.9em">Spherical spline prediction on 1-s epochs; channels deviating from spatial prediction flagged as bad</span></td><td style="text-align:right"><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">2 channel(s) flagged</span></td></tr>
+      <tr><td style="color:#888;width:32px">7</td><td><strong>ICA — Extended Infomax</strong><br><span style="color:#555;font-size:0.9em">15 components; 2 component(s) excluded (IC [0, 1]) as presumed EOG/blink artifacts</span></td><td style="text-align:right"><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">2 component(s) removed</span></td></tr>
+      <tr><td style="color:#888;width:32px">8</td><td><strong>Channel selection</strong><br><span style="color:#555;font-size:0.9em">Cz excluded (bilateral symmetry / near-zero wPLI). 19 → 18 channels retained.</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">9</td><td><strong>Epoching</strong><br><span style="color:#555;font-size:0.9em">Fixed-length 2.0 s epochs, no overlap → 55 epochs</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+      <tr><td style="color:#888;width:32px">10</td><td><strong>AutoReject</strong><br><span style="color:#555;font-size:0.9em">Bayesian threshold optimisation; 55 → 55 epochs (0 dropped)</span></td><td style="text-align:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Applied</span></td></tr>
+    </table>
+  </div>
+
+  <!-- BAD CHANNELS -->
+  <div class="card">
+    <h2>Bad Channels (RANSAC)</h2>
+    <table>
+      <tr><th>Channel</th><th>Action taken</th><th>Status</th></tr>
+      <tr><td style="font-family:monospace;font-weight:600">F7</td><td>Flagged by RANSAC — spherical spline interpolation applied per-epoch via AutoReject</td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Interpolated</span></td></tr><tr><td style="font-family:monospace;font-weight:600">Cz</td><td>Flagged by RANSAC — spherical spline interpolation applied per-epoch via AutoReject</td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Interpolated</span></td></tr>
+    </table>
+    <div class="note">
+      Bad channels are interpolated <em>per epoch</em> by AutoReject using spherical
+      spline interpolation. The channel signal is entirely synthetic across all epochs.
+      Connectivity edges involving this channel should be interpreted with caution.
+    </div>
+  </div>
+
+  <!-- ICA -->
+  <div class="card">
+    <h2>ICA Components Removed</h2>
+    <table>
+      <tr><th>Component</th><th>Presumed source</th><th>Action</th></tr>
+      <tr><td>IC 0</td><td>Presumed EOG / blink artifact (frontal topography)</td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Removed</span></td></tr><tr><td>IC 1</td><td>Presumed EOG / blink artifact (frontal topography)</td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">Removed</span></td></tr>
+    </table>
+    <div class="note">
+      Components 0 &amp; 1 are hardcoded exclusions validated for this dataset.
+      Revalidation recommended if any upstream preprocessing step changes,
+      as ICA decomposition is sensitive to input signal properties.
+    </div>
+  </div>
+
+  <!-- STATIONARITY -->
+  <div class="card full">
+    <h2>Stationarity Diagnostic — KPSS Test
+       <span style="float:right"><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">2.2% failure</span></span></h2>
+    <p style="font-size:0.9em;color:#555;margin:0 0 14px">
+      KPSS null hypothesis = stationary (p &lt; 0.05 → reject stationarity).
+      All connectivity measures (coherence, wPLI, correlation) assume wide-sense
+      stationarity. Results shown for interpretation only — no epochs were dropped.
+    </p>
+    <table>
+      <tr><th>Channel</th><th>Failure rate (across 55 epochs)</th><th></th></tr>
+      <tr><td style="font-family:monospace;font-weight:600">C3</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#ffc107;width:10px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">5.5%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">C4</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">F3</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">F4</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">F7</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#ffc107;width:18px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">9.1%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">F8</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#ffc107;width:10px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">5.5%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">Fp1</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">Fp2</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:7px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">3.6%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">Fz</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">O1</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">O2</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">P3</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">P4</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:3px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">1.8%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">P7</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">P8</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:3px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">1.8%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">Pz</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">T7</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#28a745;width:0px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">0.0%</span></td></tr><tr><td style="font-family:monospace;font-weight:600">T8</td><td style="width:220px"><div style="background:#e9ecef;border-radius:3px;height:14px;width:200px"><div style="background:#dc3545;width:25px;height:14px;border-radius:3px"></div></div></td><td><span style="background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:4px;font-size:0.85em;font-weight:600">12.7%</span></td></tr>
+    </table>
+    <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div style="background:#f8f9fa;border-radius:6px;padding:14px;text-align:center">
+        <div style="font-size:1.8em;font-weight:700;color:#1a1a2e">
+          2.2%</div>
+        <div style="font-size:0.8em;color:#666">Overall failure rate<br>(22/990 tests)</div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:6px;padding:14px;text-align:center">
+        <div style="font-size:1.8em;font-weight:700;color:#1a1a2e">
+          14/55</div>
+        <div style="font-size:0.8em;color:#666">Epochs with ≥1<br>non-stationary channel</div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:6px;padding:14px;text-align:center">
+        <div style="font-size:1.8em;font-weight:700;color:#1a1a2e">
+          48, 0, 12, 22, 25</div>
+        <div style="font-size:0.8em;color:#666">5 epochs with most<br>failures (epoch index)</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:14px">
+      <strong>Interpretation:</strong>
+      A low overall failure rate (&lt;5%) indicates the WSS assumption is largely
+      satisfied. Channels with elevated failure rates (T8, F7) are consistent with
+      residual temporal reference proximity effects and bad electrode contact
+      respectively. These channels' connectivity estimates carry greater uncertainty.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

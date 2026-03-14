@@ -1,0 +1,96 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.1 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36" version="29.6.1">
+  <diagram name="Page-1" id="pO9FZItBNnBLlFJrdW5C">
+    <mxGraphModel dx="1833" dy="580" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-1" parent="1" style="swimlane;whiteSpace=wrap;html=1;" value="Preprocessing" vertex="1">
+          <mxGeometry height="1010" width="280" x="390" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-13" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="KcZ0zRsaBRRgiB3xQfuk-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="KcZ0zRsaBRRgiB3xQfuk-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-2" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="whiteSpace=wrap;html=1;fillColor=#008a00;fontColor=#ffffff;strokeColor=#005700;" value="Convert to Standard 10-20 mapping&amp;nbsp;" vertex="1">
+          <mxGeometry height="60" width="150" x="70" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-12" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="KcZ0zRsaBRRgiB3xQfuk-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="KcZ0zRsaBRRgiB3xQfuk-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-3" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="whiteSpace=wrap;html=1;fillColor=#008a00;fontColor=#ffffff;strokeColor=#005700;" value="Notch filter for 60hz for power line noise" vertex="1">
+          <mxGeometry height="50" width="150" x="70" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-11" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="KcZ0zRsaBRRgiB3xQfuk-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="KcZ0zRsaBRRgiB3xQfuk-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-4" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="whiteSpace=wrap;html=1;fillColor=#008a00;fontColor=#ffffff;strokeColor=#005700;" value="Bandpass filter:&amp;nbsp;&lt;div&gt;high-pass at 1hz&amp;nbsp;&lt;/div&gt;&lt;div&gt;low-pass at 45hz&lt;/div&gt;" vertex="1">
+          <mxGeometry height="50" width="145" x="72.5" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-10" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="KcZ0zRsaBRRgiB3xQfuk-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="KcZ0zRsaBRRgiB3xQfuk-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-8" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="whiteSpace=wrap;html=1;fillColor=#008a00;fontColor=#ffffff;strokeColor=#005700;" value="RANSAC algorithm:&lt;div&gt;detects bad channels&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="85" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-2" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="KcZ0zRsaBRRgiB3xQfuk-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="6N32zX94DFN6dj6Ck5gG-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-9" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="whiteSpace=wrap;html=1;fillColor=#a20025;fontColor=#ffffff;strokeColor=#6F0000;" value="ICA:&amp;nbsp;&lt;div&gt;Identify signal components (eye blinks and&amp;nbsp;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="70" width="120" x="85" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-4" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="6N32zX94DFN6dj6Ck5gG-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6N32zX94DFN6dj6Ck5gG-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-1" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#a20025;fontColor=#ffffff;strokeColor=#6F0000;" value="Drop Cz channel leaving 18 channels" vertex="1">
+          <mxGeometry height="60" width="120" x="85" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-6" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="6N32zX94DFN6dj6Ck5gG-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6N32zX94DFN6dj6Ck5gG-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-3" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="rounded=0;whiteSpace=wrap;html=1;" value="Epoched:&lt;div&gt;sliced&amp;nbsp; into 2-second non-overlapping epochs&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="85" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-9" edge="1" parent="KcZ0zRsaBRRgiB3xQfuk-1" source="6N32zX94DFN6dj6Ck5gG-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6N32zX94DFN6dj6Ck5gG-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-5" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="whiteSpace=wrap;html=1;" value="AutoReject:&lt;div&gt;corrupted epochs dropped/repaired&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="85" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-8" parent="KcZ0zRsaBRRgiB3xQfuk-1" style="rounded=0;whiteSpace=wrap;html=1;" value="Filtered and Epoched time series (18 time series with each corresponding to an electrode" vertex="1">
+          <mxGeometry height="80" width="120" x="85" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="NC9LTMfaHfdvfHm2us7p-1" edge="1" parent="1" source="KcZ0zRsaBRRgiB3xQfuk-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=0.999;exitY=0.356;exitDx=0;exitDy=0;exitPerimeter=0;" target="KcZ0zRsaBRRgiB3xQfuk-2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="390" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-14" parent="1" style="swimlane;whiteSpace=wrap;html=1;" value="Data Acquisition&amp;nbsp;" vertex="1">
+          <mxGeometry height="950" width="580" x="-490" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-19" parent="KcZ0zRsaBRRgiB3xQfuk-14" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#008a00;fontColor=#ffffff;strokeColor=#005700;" value="&lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;&lt;b&gt;Children, 7-12 years old, are recorded via&amp;nbsp;&lt;span style=&quot;background-color: transparent;&quot;&gt;10-20 standard by 19 channels EEG configuration sampled at 128hz&lt;/span&gt;&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="130" width="190" x="195" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-21" parent="KcZ0zRsaBRRgiB3xQfuk-14" style="swimlane;whiteSpace=wrap;html=1;" value="Visual Task" vertex="1">
+          <mxGeometry height="320" width="525" x="27.5" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="KcZ0zRsaBRRgiB3xQfuk-22" parent="KcZ0zRsaBRRgiB3xQfuk-21" style="text;html=1;whiteSpace=wrap;strokeColor=#6F0000;fillColor=#a20025;align=center;verticalAlign=middle;rounded=0;fontColor=#ffffff;" value="&lt;span style=&quot;font-family: &amp;quot;Open Sans&amp;quot;, sans-serif; text-align: start;&quot;&gt;&lt;font style=&quot;color: light-dark(rgb(202, 206, 209), rgb(0, 0, 0)); font-size: 17px;&quot;&gt;&lt;b&gt;&quot;a set of pictures of cartoon characters was shown to the children and they were asked to count the characters. The number of characters in each image was randomly selected between 5 and 16, and the size of the pictures was large enough to be easily visible and countable by children. To have a continuous stimulus during the signal recording, each image was displayed immediately and uninterrupted after the child’s response. Thus, the duration of EEG recording throughout this cognitive visual task was dependent on the child’s performance (i.e. response speed).&quot; - per data set&lt;/b&gt;&lt;/font&gt;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="270" width="500" x="10" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-7" parent="1" style="swimlane;whiteSpace=wrap;html=1;" value="Connectivity Analysis" vertex="1">
+          <mxGeometry height="410" width="300" x="910" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-11" parent="6N32zX94DFN6dj6Ck5gG-7" style="whiteSpace=wrap;html=1;" value="Compute Connectivity matrices" vertex="1">
+          <mxGeometry height="60" width="120" x="90" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="6N32zX94DFN6dj6Ck5gG-10" edge="1" parent="1" source="6N32zX94DFN6dj6Ck5gG-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="6N32zX94DFN6dj6Ck5gG-11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="770" y="980" />
+              <mxPoint x="770" y="110" />
+            </Array>
+            <mxPoint x="909.9999999999995" y="80" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
