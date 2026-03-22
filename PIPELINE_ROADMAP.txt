@@ -1,0 +1,579 @@
+ADHD EEG TDA PIPELINE — MODULARIZATION ROADMAP
+================================================
+Last updated: 2026-03-13
+
+This document is the authoritative specification for converting the single-subject
+TDADHD_copy.py prototype into a modular, parallelizable multi-subject pipeline.
+Build in the order listed. Each section is self-contained enough to implement
+independently once its dependencies are done.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIRECTORY LAYOUT (target state)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ADHD/
+├── data/
+│   ├── metadata.csv              subject_id, group, age, sex
+│   └── raw/
+│       └── {subject_id}.mat      one file per subject
+│
+├── pipeline/
+│   ├── config.py                 all shared constants
+│   ├── pipeline_subject.py       single-subject entrypoint
+│   ├── pipeline_group.py         group-level analysis + figures
+│   ├── run_all.py                parallel batch runner
+│   └── status.py                 progress dashboard
+│
+├── results/
+│   ├── subjects/
+│   │   └── {subject_id}/
+│   │       ├── .cache/           per-step pickle cache
+│   │       ├── no_spatial_filter/
+│   │       ├── surface_laplacian/
+│   │       ├── betti_features.pkl
+│   │       ├── conn_matrices.npz
+│   │       ├── dist_matrices.npz
+│   │       ├── tda_results.pkl
+│   │       ├── graph_results.pkl
+│   │       ├── epochs_clean.fif
+│   │       ├── ch_names.pkl
+│   │       └── run.log
+│   └── group/
+│       ├── betti_features_all.pkl
+│       └── figures/
+│           ├── betti_b0_adhd_vs_tdc.png
+│           ├── betti_b1_adhd_vs_tdc.png
+│           ├── auc_boxplots.png
+│           └── auc_regression.txt
+│
+├── TDADHD_copy.py                prototype — keep intact, do not delete
+├── PIPELINE_ROADMAP.txt          this file
+└── docs/
+    └── index.html
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUILD ORDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. config.py                      no dependencies
+2. ICLabel in TDADHD_copy.py      validate on v10p before pipeline_subject.py
+3. pipeline_subject.py            imports config.py; copies logic from TDADHD_copy.py
+4. status.py                      reads results/subjects/*/run.log
+5. pipeline_group.py              reads results/subjects/*/betti_features.pkl
+6. run_all.py                     wraps pipeline_subject.py with joblib
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — pipeline/config.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose: single source of truth for all analysis constants.
+Both pipeline_subject.py and pipeline_group.py import from here.
+Changing a value here automatically invalidates caches (via hash).
+
+Extract the following from TDADHD_copy.py:
+
+  SFREQ = 128                       # Hz
+  EPOCH_DURATION = 2.0              # seconds
+  EPOCH_OVERLAP = 0.0               # fraction (0 = no overlap)
+
+  TARGET_CHANNELS = [               # 19-channel 10-20 set
+      'Fp1','Fp2','F7','F3','Fz','F4','F8',
+      'T3','C3','Cz','C4','T4',
+      'T5','P3','Pz','P4','T6',
+      'O1','O2'
+  ]
+
+  FREQ_BANDS = {                    # Hz ranges
+      'delta':  (1,  4),
+      'theta':  (4,  8),
+      'alpha':  (8, 13),
+      'beta':  (13, 30),
+      'gamma': (30, 45),
+  }
+
+  CONN_MEASURES = ['coherence', 'wpli', 'correlation']
+
+  GRAPH_DENSITY = 0.25              # proportional threshold for graph metrics
+  DENSITY_SWEEP = list(np.arange(0.10, 0.51, 0.05))   # 9 points
+
+  N_SURROGATES = 200                # kept here for reference; skipped in batch
+  SURROGATE_PERCENTILE = 95
+
+  ICA_METHOD = 'infomax'
+  ICA_EXTENDED = True
+  ICA_RANDOM_STATE = 42
+  ICLABEL_THRESHOLD = 0.80          # exclude non-brain/non-other above this prob
+  ICLABEL_KEEP = ('brain', 'other') # labels to retain
+
+  AUTOREJECT_N_INTERPOLATE = [1, 4, 32]
+  AUTOREJECT_CV = 10
+
+  MIN_CLEAN_EPOCHS = 30             # TBD — subjects below this are excluded
+                                    # set to 0 to disable exclusion check
+
+  RESULTS_ROOT = 'results'          # relative to repo root
+  DATA_ROOT    = 'data'
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — ICLabel in TDADHD_copy.py  (patch before modularizing)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current state:
+  ica.exclude = [0, 1]   # hardcoded — wrong for any subject other than v10p
+
+Replacement:
+  from mne_icalabel import label_components
+
+  ic_labels = label_components(raw_for_ica, ica, method='iclabel')
+  # ic_labels['labels']       list of str, one per component
+  # ic_labels['y_pred_proba'] array (n_components, n_classes)
+
+  ica.exclude = [
+      i
+      for i, (label, proba) in enumerate(
+          zip(ic_labels['labels'], ic_labels['y_pred_proba'])
+      )
+      if label not in ICLABEL_KEEP and proba.max() > ICLABEL_THRESHOLD
+  ]
+  print(f"  ICLabel excluded {len(ica.exclude)} components: {ica.exclude}")
+
+Install:
+  pip install mne-icalabel
+
+Notes:
+- label_components() needs a continuous Raw object (not Epochs).
+  Pass the bandpass-filtered raw before epoching.
+- ICLabel was trained on 19-channel 10-20 data — exactly what we have.
+- After patching, rerun v10p and verify the excluded components are
+  plausible (eye blinks = frontal, muscle = high-freq temporal).
+- Do NOT modularize until this is validated on v10p.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — pipeline/pipeline_subject.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose: process one subject end-to-end. Callable from command line or
+from run_all.py. Writes all outputs to results/subjects/{subject_id}/.
+
+Usage:
+  python pipeline/pipeline_subject.py data/raw/v10p.mat
+
+Signature (importable function):
+  def run_subject(mat_path: str,
+                  force: bool = False,
+                  figures: bool = False) -> dict | None:
+    """
+    Returns betti_features dict on success, None on failure.
+    force=True ignores all caches.
+    figures=False skips per-subject visualizations (default for batch runs).
+    """
+
+Internal structure (copy logic from TDADHD_copy.py, do NOT import it):
+
+  [A] Setup
+      - subject_id = Path(mat_path).stem       e.g. 'v10p'
+      - out_dir    = results/subjects/{subject_id}/
+      - cache_dir  = out_dir/.cache/
+      - log_path   = out_dir/run.log
+      - Set up logging: FileHandler(log_path) + StreamHandler
+        Use logging.getLogger(subject_id) throughout
+
+  [B] Cache helpers (local to file or imported from a small cache.py)
+      _cache_path(name)       → cache_dir / name
+      _cache_exists(name)     → Path exists
+      _load_pkl(name)         → pickle.load
+      _save_pkl(name, obj)    → pickle.dump (atomic write: write to .tmp, rename)
+      _load_npz(name)         → np.load
+      _save_npz(name, **arrs) → np.savez_compressed
+      _invalidate(*names)     → delete cache files
+      _cache_key(cfg_keys)    → sha256 of function source + config value dict
+        Use inspect.getsource() + json.dumps(config_dict, sort_keys=True)
+        Store key in cache_dir/{name}.key; invalidate if key changes
+
+  [C] Steps (each wrapped in try/except, logged)
+
+      1. PREPROCESS
+         Cache: epochs_clean.fif, ch_names.pkl, preprocessing_report.html
+         Cache key: hash(preprocess source, SFREQ, TARGET_CHANNELS,
+                         EPOCH_DURATION, EPOCH_OVERLAP, AUTOREJECT settings,
+                         ICA settings, ICLABEL settings)
+         - Load mat, scale µV→V, pick TARGET_CHANNELS
+         - RANSAC bad channel detection
+         - Average reference
+         - Bandpass 1-45 Hz
+         - ICA (infomax extended) + ICLabel artifact rejection
+         - Epoch (EPOCH_DURATION, EPOCH_OVERLAP)
+         - AutoReject
+         - KPSS stationarity check (warn only, do not fail)
+         - Generate preprocessing_report.html
+         - Check MIN_CLEAN_EPOCHS; raise ValueError if below threshold
+
+      2. CONNECTIVITY
+         Cache: conn_matrices.npz, dist_matrices.npz
+         Cache key: hash(connectivity source, FREQ_BANDS, CONN_MEASURES)
+         - Compute 15 connectivity matrices (CONN_MEASURES × FREQ_BANDS)
+         - Compute 15 distance matrices (1 - conn)
+
+      3. TDA
+         Cache: tda_results.pkl
+         Cache key: hash(tda source)
+         - Feed full dist_matrices to ripser (no pre-thresholding)
+         - Compute B0 and B1 curves
+         - Extract features (AUC, slope, kurtosis per homer/band)
+
+      4. BETTI FEATURES
+         Cache: betti_features.pkl
+         Cache key: inherits from TDA
+         - Call extract_betti_features(tda_results)
+         - Write betti_features.pkl  ← this is the file pipeline_group.py reads
+
+      5. GRAPH METRICS
+         Cache: graph_results.pkl
+         Cache key: hash(graph source, GRAPH_DENSITY, DENSITY_SWEEP)
+         - Graph metrics at GRAPH_DENSITY
+         - Density sweep
+
+      6. FIGURES (only if figures=True)
+         - Same plots as TDADHD_copy.py
+         - Saved to out_dir/no_spatial_filter/ and out_dir/surface_laplacian/
+         - Skip entirely when figures=False (batch default)
+
+  [D] Return betti_features dict on success
+      Write final status line to run.log: "STATUS: complete"
+      On any exception: log full traceback, write "STATUS: failed — {error}",
+      return None. Do NOT re-raise (so parallel runner can collect partial results).
+
+  [E] __main__ block
+      import argparse
+      parser.add_argument('mat_path')
+      parser.add_argument('--force',   action='store_true')
+      parser.add_argument('--figures', action='store_true')
+      result = run_subject(args.mat_path, force=args.force, figures=args.figures)
+      sys.exit(0 if result is not None else 1)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — pipeline/status.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose: quick progress check without running analysis.
+
+Usage:
+  python pipeline/status.py
+
+Output (tabular, printed to stdout):
+
+  Subject  Group  Preproc  Conn  TDA  Graph  Features  Status
+  -------  -----  -------  ----  ---  -----  --------  ----------
+  v10p     ADHD   ✓        ✓     ✓    ✓      ✓         complete
+  v11p     TDC    ✓        ✓     ✗    ✗      ✗         running
+  v12p     ADHD   ✗        ✗     ✗    ✗      ✗         pending
+
+Implementation:
+  - Read data/metadata.csv for subject list and group labels
+  - For each subject, check results/subjects/{id}/.cache/ for:
+      epochs_clean.fif      → Preproc ✓
+      conn_matrices.npz     → Conn ✓
+      tda_results.pkl       → TDA ✓
+      graph_results.pkl     → Graph ✓
+      betti_features.pkl    → Features ✓
+  - Read last line of run.log for Status
+    "STATUS: complete"   → complete
+    "STATUS: failed — …" → failed (show truncated error)
+    file missing          → pending
+    anything else         → running (process died or in progress)
+  - Print summary counts at bottom:
+    "Complete: 12/121   Failed: 2/121   Pending: 107/121"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — pipeline/pipeline_group.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose: aggregate across all complete subjects and produce group figures.
+Can be run at any time — skips subjects that haven't finished yet.
+
+Usage:
+  python pipeline/pipeline_group.py
+
+Output: results/group/figures/
+
+[A] Load data
+    - Read data/metadata.csv (subject_id, group, age, sex)
+    - For each subject_id: load results/subjects/{id}/betti_features.pkl
+    - Skip if file missing (subject not yet processed)
+    - Build combined DataFrame:
+        subject_id | group | age | sex | (measure, band) features...
+    - Save combined dict to results/group/betti_features_all.pkl
+    - Print: "Loaded N subjects (ADHD: x, TDC: y). Skipped z."
+
+[B] plot_group_betti_curves()
+    Saves: results/group/figures/betti_b0_adhd_vs_tdc.png
+           results/group/figures/betti_b1_adhd_vs_tdc.png
+
+    Layout: rows = CONN_MEASURES (3), cols = FREQ_BANDS (5), 2 figures (B0, B1)
+    For each panel:
+      - Interpolate each subject's Betti curve onto a common epsilon grid
+        (use linspace from 0 to max(eps) across all subjects, 200 points)
+      - Compute mean and 95% CI (1.96 * std / sqrt(n)) per group
+      - Plot ADHD mean (red) ± shaded CI
+      - Plot TDC  mean (blue) ± shaded CI
+      - Fixed x-axis: 0 to global_max_epsilon
+      - Fixed y-axis: 0 to (n_channels + 1) for B0, 0 to reasonable B1 max
+      - Label: measure + band in panel title
+    Legend: ADHD (n=x) / TDC (n=y) shown once in top-left panel
+
+    Statistical soundness note:
+      This is a descriptive visualization only. Do not label it "significant".
+      Formal testing is in run_group_statistics().
+
+[C] plot_auc_distributions()
+    Saves: results/group/figures/auc_boxplots.png
+
+    Layout: 2 rows (B0, B1) × 15 columns (measure × band)
+    Each panel: side-by-side boxplot, ADHD vs TDC
+    - Use seaborn.boxplot or matplotlib with jitter (stripplot overlay)
+    - Color: ADHD = red, TDC = blue (consistent with Betti curve plot)
+    - y-axis: AUC value; fixed per row (B0 row same scale, B1 row same scale)
+    - Show individual subject dots overlaid on boxes
+
+[D] run_group_statistics()
+    Saves: results/group/figures/auc_regression.txt
+
+    Method: logistic regression matching Gracia-Tabuenca 2020 Table 2
+    Library: sklearn.linear_model.LogisticRegression OR statsmodels.api.Logit
+      (use statsmodels for p-values and confidence intervals)
+
+    For each (measure, band) combination × {B0, B1}:
+      predictors: auc, slope, kurtosis (standardized: zero mean, unit variance)
+      covariates: age, sex (include in all models)
+      outcome:    group (ADHD=1, TDC=0)
+
+      Model: group ~ auc + slope + kurtosis + age + sex
+
+      Report per model:
+        - AUC coefficient, p-value, 95% CI
+        - slope coefficient, p-value, 95% CI
+        - kurtosis coefficient, p-value, 95% CI
+        - Model AUC (ROC) from leave-one-out cross-validation
+        - n subjects
+
+    Write to auc_regression.txt in tab-separated format:
+      measure | band | homer | predictor | coef | p | CI_lo | CI_hi | model_AUC
+
+    Flag: with only a handful of subjects the model is underpowered.
+    Print warning if n < 30.
+
+[E] plot_age_distribution()   (diagnostic)
+    Saves: results/group/figures/age_distribution.png
+    - Histogram of age by group (ADHD vs TDC)
+    - Confirms ADHD skews younger (known confound in ADHD-200 dataset)
+    - This motivates including age as covariate in all regression models
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — pipeline/run_all.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose: run pipeline_subject.py for all subjects in parallel.
+
+Usage:
+  python pipeline/run_all.py                  # all subjects
+  python pipeline/run_all.py --force          # ignore all caches
+  python pipeline/run_all.py --n-jobs 4       # override parallelism
+  python pipeline/run_all.py --subjects v10p v11p   # specific subjects
+
+Implementation:
+  from joblib import Parallel, delayed
+  from pipeline_subject import run_subject
+
+  Parallel(n_jobs=N_JOBS, backend='loky', verbose=10)(
+      delayed(run_subject)(mat_path, force=force, figures=False)
+      for mat_path in subject_mat_paths
+  )
+
+  Why loky backend:
+    MNE is not thread-safe (uses LAPACK/BLAS with shared state).
+    loky spawns separate processes → full memory isolation.
+    Each worker gets its own Python interpreter. Safe.
+
+  Memory estimate:
+    Single subject peak: ~300–500 MB (MNE epochs + ICA + connectivity matrices)
+    With n_jobs=8: ~2.5–4 GB total workers + OS overhead
+    64 GB RAM: comfortable at n_jobs=8, could go higher but diminishing returns
+    Default N_JOBS = 8 (defined in config.py or overridable via CLI)
+
+  After parallel step:
+    Print summary (how many succeeded / failed)
+    Optionally call pipeline_group.py automatically:
+      if args.group:
+          from pipeline_group import run_group
+          run_group()
+
+  Error handling:
+    Failures are caught inside run_subject() and logged per subject.
+    run_all.py collects None returns and prints failed subject list.
+    A single failed subject never blocks other subjects.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CACHING SPECIFICATION (applies to pipeline_subject.py)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Location:  results/subjects/{subject_id}/.cache/
+
+Files:
+  {step_name}.key    sha256 hex string of (function source + config values)
+  {step_name}.done   empty sentinel file (created after successful step)
+
+Cache invalidation logic (per step):
+  current_key = sha256(inspect.getsource(step_fn) +
+                       json.dumps(relevant_config_subset, sort_keys=True))
+  stored_key  = read {step_name}.key if exists else ''
+  if current_key != stored_key:
+      delete {step_name}.done and all downstream .done files
+      (preprocessing invalidates everything downstream)
+      write current_key to {step_name}.key
+  if not {step_name}.done:
+      run step, write outputs, write {step_name}.done
+
+Step dependency chain (invalidation cascades downstream):
+  preprocess → connectivity → tda → betti_features
+                            → graph_metrics
+
+  Changing FREQ_BANDS invalidates connectivity + everything after.
+  Changing ICA/ICLabel settings invalidates preprocess + everything after.
+  Changing GRAPH_DENSITY only invalidates graph_metrics.
+  Changing TDA settings only invalidates tda + betti_features.
+
+Atomic writes:
+  All pickle/npz saves: write to {name}.tmp first, then os.replace() to {name}
+  Prevents corrupted cache files if process is killed mid-write.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATA SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+data/metadata.csv format:
+  subject_id,group,age,sex
+  v10p,ADHD,10,M
+  v11p,TDC,9,F
+  ...
+
+  - subject_id must match the .mat filename stem (e.g. v10p → v10p.mat)
+  - group: exactly 'ADHD' or 'TDC'
+  - age: integer years
+  - sex: 'M' or 'F'
+
+Source: ADHD-200 dataset (IEEE DataPort)
+  - 121 subjects total (61 ADHD, 60 TDC per paper)
+  - Age range: 7–12 years (ADHD skews younger — always include age covariate)
+  - Currently only v10p is in metadata.csv — populate before running group analysis
+
+.mat file placement:
+  data/raw/{subject_id}.mat
+  v10p.mat needs to be moved from its current location to data/raw/v10p.mat
+  Update TDADHD_copy.py DATA_PATH accordingly before moving.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN CONSTRAINTS AND DECISIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SURROGATES: skipped in pipeline_subject.py
+  Rationale: surrogate thresholding is computationally expensive (200× connectivity),
+  adds little value when the goal is group comparison with logistic regression,
+  and the key TDA result (Gracia-Tabuenca 2020) does not use surrogate thresholding.
+  The full surrogate analysis remains in TDADHD_copy.py for exploratory use.
+
+PER-SUBJECT FIGURES: skipped in pipeline_subject.py (figures=False by default)
+  Rationale: 121 subjects × ~10 figures each = ~1210 files, most never viewed.
+  Generate only when explicitly requested (pipeline_subject.py --figures).
+  Group figures are the primary outputs.
+
+TDA THRESHOLDING: none — full distance matrix fed to ripser
+  Rationale: persistent homology uses the full filtration; pre-thresholding
+  discards topological structure at larger scales. Proportional threshold is only
+  applied for graph theory metrics (where density=0.25 is conventional).
+
+PARALLELISM: joblib loky, n_jobs=8 (default), overridable
+  MNE is not thread-safe → must use process-based parallelism.
+  With 64 GB RAM and ~500 MB peak per subject, n_jobs=8 is safe.
+
+MINIMUM EPOCHS: MIN_CLEAN_EPOCHS = 30 (tentative)
+  Subjects with fewer clean epochs after AutoReject are excluded.
+  Set to 0 in config.py to disable. Review after processing first batch.
+
+ICLABEL THRESHOLD: 0.80
+  Exclude a component only if ICLabel is >80% confident it's an artifact.
+  Below 80% = keep (treat as brain/ambiguous). Reduces false exclusions.
+  Components where label ∈ ('brain', 'other') are always kept regardless of prob.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPENDENCIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Already installed (used in TDADHD_copy.py):
+  mne, autoreject, ripser, scipy, numpy, matplotlib, networkx, plotly
+
+New requirement:
+  mne-icalabel          pip install mne-icalabel
+
+Needed for group analysis:
+  pandas                (probably already installed)
+  statsmodels           pip install statsmodels    (logistic regression with p-values)
+  seaborn               pip install seaborn        (boxplots)
+  joblib                pip install joblib         (parallel runner)
+  scikit-learn          pip install scikit-learn   (ROC AUC cross-validation)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEFERRED / OUT OF SCOPE FOR NOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Populate metadata.csv with all 121 subjects
+- Move v10p.mat to data/raw/
+- Clear stale .cache/ contents from old runs (manual step, not automated)
+- Remove gracia_tabuenca_2020.txt and paper_full.txt from ADHD root (temp files)
+- Interactive subject-level review dashboard (future)
+- Surrogate thresholding at group level (future, currently in TDADHD_copy.py)
+- B1 statistical analysis (Gracia-Tabuenca 2020 only used B0; B1 is exploratory)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VALIDATION CHECKLIST (run after each step is implemented)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After Step 2 (ICLabel):
+  [ ] Run TDADHD_copy.py on v10p; confirm ica.exclude is non-empty and plausible
+  [ ] Compare preprocessing_report.html before/after — epochs retained similar?
+  [ ] Check ICLabel component labels printed to console
+
+After Step 3 (pipeline_subject.py):
+  [ ] python pipeline/pipeline_subject.py data/raw/v10p.mat
+  [ ] Outputs appear in results/subjects/v10p/
+  [ ] betti_features.pkl exists and loads correctly
+  [ ] run.log ends with "STATUS: complete"
+  [ ] Second run uses cache (fast, no recomputation)
+  [ ] Edit SFREQ in config.py → confirm cache invalidates and reruns from scratch
+
+After Step 4 (status.py):
+  [ ] python pipeline/status.py → shows v10p as complete
+  [ ] Delete results/subjects/v10p/.cache/epochs_clean.fif → shows Preproc as ✗
+
+After Step 5 (pipeline_group.py):
+  [ ] Works with only one subject (no crash, warns about low n)
+  [ ] Group figures save to results/group/figures/
+  [ ] auc_regression.txt is written and readable
+
+After Step 6 (run_all.py):
+  [ ] Dry run with n_jobs=1 on v10p → same output as direct pipeline_subject.py call
+  [ ] Test failure isolation: corrupt one .mat file → run_all completes, reports failure
+  [ ] Memory monitor during n_jobs=8 run (htop) — stays under 32 GB

@@ -1,0 +1,218 @@
+================================================================================
+ADHD EEG TDA PIPELINE — PROJECT BRIEF
+For rapid context recovery between sessions
+================================================================================
+
+
+--------------------------------------------------------------------------------
+WHAT THIS PROJECT IS
+--------------------------------------------------------------------------------
+
+Single-subject EEG prototype analyzing brain network topology in the context
+of ADHD research. The core idea: treat EEG functional connectivity matrices as
+a metric space and use Topological Data Analysis (TDA) to characterize the
+"shape" of the brain network across multiple connectivity thresholds, rather
+than committing to a single arbitrary threshold.
+
+Data: v10p.mat — 19-channel, 128 Hz EEG recording, one ADHD subject.
+The main working file is TDADHD_copy.py. TDADHD.py is an old exploratory
+script that stops after preprocessing — ignore it.
+
+
+--------------------------------------------------------------------------------
+PIPELINE STAGES (in order, all in TDADHD_copy.py)
+--------------------------------------------------------------------------------
+
+1. PREPROCESSING (preprocess())
+   - Load v10p.mat, remap generic channel names to standard 10-20
+   - Notch filter (60 Hz) + bandpass (1-45 Hz)
+   - RANSAC bad channel detection
+   - ICA (infomax, 15 components, components 0 & 1 excluded as EOG artifacts)
+   - Pick 18 TARGET_CHANNELS (Cz excluded — see metrics_guide.txt for why)
+   - AutoReject epoch cleaning, 2-second epochs
+
+2. CSD TRANSFORM (apply_csd())
+   - Surface Laplacian applied to a copy of clean epochs
+   - Requires interpolation of bad channels first (RANSAC marks some as bad)
+   - Returns CSD-transformed epochs for parallel pipeline run
+
+3. CONNECTIVITY (compute_all_connectivity())
+   - 3 measures × 5 frequency bands = 15 connectivity matrices (18×18 each)
+   - Measures: coherence, debiased wPLI, bandpass-filtered Pearson correlation
+   - Distance matrices: dist = 1 - conn (used for TDA)
+   - Frequency bands: delta(1-4), theta(4-8), alpha(8-13), beta(13-30), gamma(30-45)
+
+4. TDA (run_tda_pipeline())
+   - Vietoris-Rips persistent homology via ripser
+   - Computes H0 (connected components) and H1 (loops)
+   - Betti-0, Betti-1, Euler characteristic curves
+   - Persistence diagrams with electrode attribution:
+     H0: MST-based (merge edge endpoints)
+     H1: cocycle-based (loop participant electrodes)
+
+5. GRAPH THEORY (run_graph_pipeline())
+   - Proportional threshold: top 25% of edges kept (density=0.25)
+   - Metrics: strength, clustering, CPL, betweenness, global efficiency, modularity
+
+6. SURROGATES (run_surrogate_pipeline())
+   - Phase randomization null testing
+   - N_SURROGATES=200 iterations (configurable at top of file)
+   - Per-pair null distribution, SURROGATE_PERCENTILE=95 threshold
+   - Zeros out edges indistinguishable from chance
+   - Computationally expensive — ~30-90 min for full run
+
+7. VISUALIZATIONS
+   All visualization functions accept out_dir= parameter.
+   Outputs are organized into three folders:
+     raw/        — results from raw (unfiltered) epochs
+     csd/        — results from CSD-transformed epochs
+     surrogates/ — results from surrogate-thresholded connectivity matrices
+
+
+--------------------------------------------------------------------------------
+OUTPUT FOLDER STRUCTURE
+--------------------------------------------------------------------------------
+
+ADHD/
+  raw/
+    connectivity_heatmaps.png       3x5 grid of connectivity matrices
+    network_viz.png                 Topographic network, 3 measures x 5 bands
+    edge_weight_distributions.png   Histograms of all 153 edge weights + threshold line
+    graph_metrics.png               Bar charts of 6 graph theory metrics
+    metric_space_dendrograms.png    Single-linkage dendrograms (= H0 filtration structure)
+    betti_0_curves.html             B0 curves across bands, 3 measures overlaid
+    betti_1_curves.html             B1 curves across bands
+    euler_curves.html               Euler characteristic curves
+    persistence_diagrams.html       Scatter: (birth, death), sized by persistence, electrode hover
+    persistence_barcodes.html       Horizontal bars per feature, H0 above / H1 below divider
+    simplicial_filtration_*.html    15 interactive Vietoris-Rips filtration animations
+  csd/
+    (identical file set)
+  surrogates/
+    surrogate_survival.png          KEY DIAGNOSTIC: % edges surviving null test per measure/band
+    (identical file set to raw/)
+  v10p.mat
+  TDADHD.py                         OLD — ignore
+  TDADHD_copy.py                    MAIN PIPELINE FILE
+  metrics_guide.txt                 Detailed reference for every metric and formula
+  PROJECT_BRIEF.txt                 This file
+
+
+--------------------------------------------------------------------------------
+KEY CONFIGURATION VARIABLES (top of TDADHD_copy.py)
+--------------------------------------------------------------------------------
+
+INTERACTIVE       = False          Set True to show MNE browser plots
+N_FILT_STEPS      = 100            Betti curve resolution
+N_SURROGATES      = 200            Phase randomization iterations (reduce to 20 for testing)
+SURROGATE_PERCENTILE = 95          Significance threshold
+TARGET_CHANNELS                    18-channel selection (Cz excluded)
+FREQ_BANDS                         5 standard EEG bands
+
+
+--------------------------------------------------------------------------------
+KEY DESIGN DECISIONS AND RATIONALE
+--------------------------------------------------------------------------------
+
+WHY 18 CHANNELS, NOT 19
+  Cz excluded: equidistant from C3/C4 produces spurious symmetric
+  coherence and near-zero wPLI due to bilateral phase cancellation.
+
+DISTANCE METRIC: dist = 1 - conn
+  Standard for TDA on connectivity data. NOT a true metric — triangle
+  inequality is not guaranteed. This is expected and acceptable.
+  Ripser works with any symmetric dissimilarity matrix.
+  Implication: long-lived H1 features may reflect "mediated" connectivity
+  (A-B and B-C connected but A-C not directly) rather than true cycles.
+
+PROPORTIONAL THRESHOLD (density=0.25) FOR GRAPH THEORY
+  Keeps top 25% of the 153 edges so edge count is equal across all 15
+  matrices, making graph metrics comparable. Known limitation: the threshold
+  is arbitrary and means different things for different edge weight
+  distributions. Surrogates provide a principled alternative.
+
+CSD BEFORE CONNECTIVITY
+  Surface Laplacian suppresses spatially broad signals. Applied to a copy
+  of epochs — originals are untouched. Bad channels must be interpolated
+  first (MNE requirement). wPLI changes significantly after CSD because
+  CSD modifies the underlying signals, not just zero-lag coupling.
+  CSD+wPLI and raw wPLI measure different things — see discussion below.
+
+MDS WAS CONSIDERED AND REMOVED
+  MDS embeds the 18-point dissimilarity space in 2D. Removed because it
+  is a lossy projection — features visible in TDA (loops, components) are
+  destroyed by dimensionality reduction. The dendrogram is strictly more
+  faithful for H0; persistence diagrams are strictly more faithful for H1.
+  Network_viz.png (physical scalp layout with edges) serves the same
+  communication purpose without implying metric space geometry.
+
+
+--------------------------------------------------------------------------------
+IMPORTANT CONCEPTUAL POINTS ESTABLISHED IN PRIOR SESSIONS
+--------------------------------------------------------------------------------
+
+METRIC SPACE vs DISSIMILARITY SPACE
+  The 18 electrodes with pairwise distances dist=1-conn form a dissimilarity
+  space, not a true metric space. TDA operates directly on this — no
+  coordinates, no embedding. Vietoris-Rips just needs a symmetric matrix
+  with zeros on diagonal. The "high dimensionality" is not visualizable
+  (up to 17 dimensions needed for lossless embedding of 18 points).
+
+VOLUME CONDUCTION EFFECTS BY METRIC
+  Coherence/correlation: INFLATED for nearby channels, short-distance edges
+  dominate, clustering coefficient severely inflated, CPL artificially short.
+  wPLI: largely immune to zero-lag coupling, shows genuine long-range edges.
+  CSD: spatial high-pass filter, suppresses broad-field signals regardless
+  of phase lag — attenuates both volume conduction AND genuine broad-field
+  neural synchrony. Not equivalent to wPLI correction.
+
+WHY wPLI CHANGED AFTER CSD
+  wPLI discards zero-lag coupling. CSD modifies spatial sharpness of signals.
+  These are orthogonal operations. CSD+wPLI = phase-lagged coupling between
+  spatially focal sources. Raw wPLI = phase-lagged coupling between scalp
+  potentials. The change reveals that some raw wPLI edges were driven by
+  spatially broad sources (possibly genuine thalamo-cortical synchrony or
+  residual artifact). Edges surviving both raw wPLI and CSD+wPLI are the
+  most trustworthy.
+
+EDGE WEIGHT DISTRIBUTIONS AND THRESHOLDING CRITIQUE
+  The proportional threshold (top 25%) is arbitrary and lands at different
+  absolute values for different measures — the edge_weight_distributions.png
+  visualizes this. The dashed threshold line shows exactly where the cut
+  falls in each distribution. If the line falls inside a dense cluster of
+  similar-weight edges, the kept/rejected distinction is unstable.
+  Phase randomization surrogates provide a statistically principled
+  alternative threshold.
+
+PERSISTENCE BARCODES vs PERSISTENCE DIAGRAMS
+  Both encode (birth, death) pairs. Diagrams use scatter (overplotting
+  common near diagonal). Barcodes use horizontal bars sorted by persistence
+  — no overplotting, length directly encodes persistence, noise features
+  visually separated at bottom of each group. Both are in the pipeline.
+
+SURROGATE SURVIVAL RATE INTERPRETATION
+  surrogate_survival.png: if a bar is near 5%, that measure/band is noise.
+  Bars well above 5% indicate genuine connectivity above chance.
+  Edges zeroed in the surrogate matrices appear as gaps in barcodes/diagrams.
+  This is the most rigorous robustness check in the pipeline.
+
+
+--------------------------------------------------------------------------------
+FUTURE WORK / OPEN QUESTIONS
+--------------------------------------------------------------------------------
+
+- Threshold sweep: sweep density from 0.10 to 0.50, plot metric stability
+  (addresses arbitrary threshold criticism for graph theory)
+- MST-based graph analysis: threshold-free, directly consistent with H0 TDA
+- Multi-subject extension: this is a single-subject prototype
+- Group comparison (ADHD vs control): statistical comparison of TDA features
+  across subjects (Wasserstein distance between persistence diagrams)
+- Source localization: project to source space before connectivity
+- Split-half epoch reliability: correlate connectivity matrices from two
+  epoch halves as a data quality metric
+- Distance vs connectivity scatter: plot physical electrode distance vs
+  connectivity strength to visualize volume conduction signature
+
+================================================================================
+END OF BRIEF
+================================================================================

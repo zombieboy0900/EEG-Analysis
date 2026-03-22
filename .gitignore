@@ -1,7 +1,10 @@
 *.mat
-*.py
-*.txt
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 docs/.cache/
+data/
+results/**/.cache/
+results/subjects/
+results/group/*.pkl
+.claude/
