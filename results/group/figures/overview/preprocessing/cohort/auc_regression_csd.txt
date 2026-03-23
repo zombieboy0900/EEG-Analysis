@@ -1,0 +1,134 @@
+ADHD EEG TDA Pipeline — Group Logistic Regression
+Pipeline: Surface Laplacian
+Method: Logistic regression based on Gracia-Tabuenca 2020 (eNeuro)
+Model:  group ~ auc + slope + kurtosis
+N:      121 subjects  (ADHD=61, TDC=60)
+
+NOTE: Individual age/sex not available in this dataset.
+      Gracia-Tabuenca 2020 included age/sex as covariates — results
+      here are not directly comparable without those controls.
+NOTE: p-values and CIs are unreliable with small samples (n < 30).
+      Use cross-validated AUC as the primary summary metric.
+
+measure      band    homer  predictor        coef        p    CI_lo    CI_hi   cv_AUC     n
+------------------------------------------------------------------------------------------
+coherence    delta   B0     auc             0.329    0.487      -0.599    1.257    0.571   120
+coherence    delta   B0     slope           0.310    0.295      -0.270    0.889    0.571   120
+coherence    delta   B0     kurtosis       -0.213    0.605      -1.022    0.595    0.571   120
+
+coherence    theta   B0     auc             0.274    0.522      -0.565    1.113    0.590   120
+coherence    theta   B0     slope           0.193    0.447      -0.304    0.691    0.590   120
+coherence    theta   B0     kurtosis       -0.259    0.522      -1.051    0.534    0.590   120
+
+coherence    alpha   B0     auc            -0.418    0.325      -1.250    0.414    0.574   120
+coherence    alpha   B0     slope           0.009    0.969      -0.470    0.488    0.574   120
+coherence    alpha   B0     kurtosis       -0.857    0.043*     -1.687   -0.027    0.574   120
+
+coherence    beta    B0     auc             0.133    0.710      -0.568    0.835    0.526   120
+coherence    beta    B0     slope          -0.012    0.958      -0.442    0.419    0.526   120
+coherence    beta    B0     kurtosis       -0.306    0.417      -1.045    0.433    0.526   120
+
+coherence    gamma   B0     auc            -0.069    0.846      -0.764    0.626    0.494   120
+coherence    gamma   B0     slope           0.050    0.865      -0.525    0.625    0.494   120
+coherence    gamma   B0     kurtosis       -0.430    0.293      -1.232    0.372    0.494   120
+
+wpli         delta   B0     auc            -0.955    0.076      -2.010    0.100    0.569   120
+wpli         delta   B0     slope           0.631    0.362      -0.726    1.987    0.569   120
+wpli         delta   B0     kurtosis        0.219    0.617      -0.640    1.078    0.569   120
+
+wpli         theta   B0     auc            -1.006    0.042*     -1.977   -0.035    0.590   120
+wpli         theta   B0     slope           1.344    0.066      -0.088    2.776    0.590   120
+wpli         theta   B0     kurtosis       -0.797    0.186      -1.979    0.385    0.590   120
+
+wpli         alpha   B0     auc            -0.400    0.394      -1.320    0.519    0.660   120
+wpli         alpha   B0     slope           0.862    0.310      -0.801    2.524    0.660   120
+wpli         alpha   B0     kurtosis       -1.137    0.112      -2.538    0.264    0.660   120
+
+wpli         beta    B0     auc            -0.926    0.091      -1.998    0.146    0.671   120
+wpli         beta    B0     slope          -0.212    0.804      -1.887    1.463    0.671   120
+wpli         beta    B0     kurtosis        0.616    0.339      -0.647    1.880    0.671   120
+
+wpli         gamma   B0     auc            -0.588    0.185      -1.458    0.282    0.571   120
+wpli         gamma   B0     slope           0.930    0.181      -0.434    2.293    0.571   120
+wpli         gamma   B0     kurtosis       -0.769    0.184      -1.902    0.365    0.571   120
+
+correlation  delta   B0     auc             0.175    0.720      -0.782    1.131    0.549   120
+correlation  delta   B0     slope           0.162    0.674      -0.591    0.915    0.549   120
+correlation  delta   B0     kurtosis       -0.373    0.396      -1.232    0.487    0.549   120
+
+correlation  theta   B0     auc            -0.181    0.694      -1.082    0.720    0.626   120
+correlation  theta   B0     slope          -0.007    0.985      -0.700    0.687    0.626   120
+correlation  theta   B0     kurtosis       -0.650    0.170      -1.579    0.279    0.626   120
+
+correlation  alpha   B0     auc            -0.467    0.304      -1.358    0.424    0.572   120
+correlation  alpha   B0     slope          -0.066    0.861      -0.806    0.674    0.572   120
+correlation  alpha   B0     kurtosis       -0.818    0.075      -1.720    0.084    0.572   120
+
+correlation  beta    B0     auc             0.051    0.887      -0.652    0.754    0.574   120
+correlation  beta    B0     slope          -0.054    0.878      -0.743    0.635    0.574   120
+correlation  beta    B0     kurtosis       -0.453    0.298      -1.306    0.400    0.574   120
+
+correlation  gamma   B0     auc            -0.134    0.696      -0.810    0.541    0.515   120
+correlation  gamma   B0     slope           0.227    0.689      -0.884    1.338    0.515   120
+correlation  gamma   B0     kurtosis       -0.707    0.228      -1.857    0.442    0.515   120
+
+coherence    delta   B1     auc            -0.813    0.006**    -1.393   -0.233    0.619   120
+coherence    delta   B1     slope           0.632    0.024*      0.085    1.179    0.619   120
+coherence    delta   B1     kurtosis       -0.448    0.064      -0.922    0.026    0.619   120
+
+coherence    theta   B1     auc            -0.620    0.042*     -1.219   -0.021    0.604   120
+coherence    theta   B1     slope           0.806    0.009**     0.201    1.410    0.604   120
+coherence    theta   B1     kurtosis       -0.518    0.043*     -1.019   -0.017    0.604   120
+
+coherence    alpha   B1     auc            -0.726    0.009**    -1.273   -0.179    0.557   120
+coherence    alpha   B1     slope           0.453    0.071      -0.039    0.946    0.557   120
+coherence    alpha   B1     kurtosis       -0.242    0.294      -0.693    0.209    0.557   120
+
+coherence    beta    B1     auc            -0.696    0.064      -1.432    0.040    0.578   120
+coherence    beta    B1     slope           0.626    0.075      -0.063    1.315    0.578   120
+coherence    beta    B1     kurtosis       -0.093    0.710      -0.584    0.398    0.578   120
+
+coherence    gamma   B1     auc            -0.894    0.021*     -1.655   -0.133    0.561   120
+coherence    gamma   B1     slope           0.664    0.056      -0.017    1.344    0.561   120
+coherence    gamma   B1     kurtosis       -0.433    0.097      -0.943    0.078    0.561   120
+
+wpli         delta   B1     auc            -0.271    0.653      -1.452    0.910    0.354   120
+wpli         delta   B1     slope           0.301    0.624      -0.903    1.505    0.354   120
+wpli         delta   B1     kurtosis        0.050    0.819      -0.380    0.480    0.354   120
+
+wpli         theta   B1     auc             0.468    0.423      -0.678    1.615    0.481   120
+wpli         theta   B1     slope          -0.484    0.369      -1.540    0.573    0.481   120
+wpli         theta   B1     kurtosis       -0.171    0.460      -0.623    0.282    0.481   120
+
+wpli         alpha   B1     auc             0.149    0.762      -0.814    1.112    0.636   120
+wpli         alpha   B1     slope           0.140    0.759      -0.757    1.037    0.636   120
+wpli         alpha   B1     kurtosis       -0.476    0.084      -1.015    0.063    0.636   120
+
+wpli         beta    B1     auc             1.334    0.199      -0.703    3.371    0.596   120
+wpli         beta    B1     slope          -0.865    0.367      -2.744    1.015    0.596   120
+wpli         beta    B1     kurtosis       -0.048    0.838      -0.514    0.417    0.596   120
+
+wpli         gamma   B1     auc             0.378    0.284      -0.314    1.070    0.514   120
+wpli         gamma   B1     slope          -0.099    0.744      -0.696    0.498    0.514   120
+wpli         gamma   B1     kurtosis        0.044    0.846      -0.397    0.484    0.514   120
+
+correlation  delta   B1     auc            -0.630    0.037*     -1.221   -0.038    0.671   120
+correlation  delta   B1     slope           0.873    0.005**     0.260    1.486    0.671   120
+correlation  delta   B1     kurtosis       -0.604    0.012*     -1.076   -0.131    0.671   120
+
+correlation  theta   B1     auc            -0.608    0.030*     -1.155   -0.061    0.621   120
+correlation  theta   B1     slope           0.806    0.005**     0.246    1.366    0.621   120
+correlation  theta   B1     kurtosis       -0.486    0.033*     -0.934   -0.038    0.621   120
+
+correlation  alpha   B1     auc            -1.100    0.002**    -1.789   -0.411    0.637   120
+correlation  alpha   B1     slope           1.057    0.001**     0.427    1.686    0.637   120
+correlation  alpha   B1     kurtosis       -0.568    0.022*     -1.056   -0.080    0.637   120
+
+correlation  beta    B1     auc            -0.777    0.073      -1.626    0.071    0.579   120
+correlation  beta    B1     slope           1.003    0.019*      0.166    1.840    0.579   120
+correlation  beta    B1     kurtosis        0.013    0.952      -0.426    0.453    0.579   120
+
+correlation  gamma   B1     auc            -1.071    0.025*     -2.007   -0.136    0.557   120
+correlation  gamma   B1     slope           0.892    0.053      -0.012    1.796    0.557   120
+correlation  gamma   B1     kurtosis       -0.307    0.177      -0.752    0.138    0.557   120
+
