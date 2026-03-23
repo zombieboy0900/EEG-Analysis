@@ -1,5 +1,5 @@
 ADHD EEG TDA Pipeline — Preprocessing & Group Summary
-Generated: 2026-03-22 13:33
+Generated: 2026-03-22 20:43
 ============================================================
 
 COHORT
@@ -13,66 +13,66 @@ PREPROCESSING — GROUP AVERAGES
   Metric                               ADHD          TDC
   ---------------------------- ------------ ------------
   Epochs before AutoReject      76.8 ± 28.9  62.0 ± 14.9
-  Epochs after AutoReject       70.4 ± 28.3  53.6 ± 14.3
-  Epochs dropped                  6.3 ± 8.1   8.3 ± 10.9
+  Epochs after AutoReject       70.6 ± 28.6  53.7 ± 14.9
+  Epochs dropped                  6.1 ± 7.9   8.3 ± 10.1
   RANSAC bad channels             0.7 ± 1.0    1.2 ± 1.3
-  ICA components excluded         1.4 ± 1.0    2.1 ± 1.3
-  KPSS fail rate (%)              2.0 ± 1.7    3.2 ± 3.6
+  ICA components excluded         1.5 ± 1.1    2.2 ± 1.1
+  KPSS fail rate (%)              2.1 ± 1.7    3.2 ± 3.7
 
-  CSD features available              60/61        60/60
+  Surface Laplacian features          60/61        60/60
 
 PREPROCESSING — PER SUBJECT
 ------------------------------------------------------------
-  Subject    Group   Before  After  Drop  BadCh  ICA  KPSS%  CSD Status
+  Subject    Group   Before  After  Drop  BadCh  ICA  KPSS%   SL Status
   ---------- ------ ------- ------ ----- ------ ---- ------ ---- ------------
   v10p       ADHD        55     55     0      2    2    2.2    -  complete
-  v12p       ADHD        68     54    14      2    3    1.5    Y  complete
-  v14p       ADHD        68     54    14      1    3    3.9    Y  complete
-  v15p       ADHD       168    148    20      1    2    4.1    Y  complete
+  v12p       ADHD        68     62     6      2    3    0.6    Y  complete
+  v14p       ADHD        68     63     5      1    2    3.3    Y  complete
+  v15p       ADHD       168    155    13      1    3    4.1    Y  complete
   v173       ADHD        94     94     0      2    0    0.4    Y  complete
   v177       ADHD        65     61     4      0    2    0.4    Y  complete
-  v179       ADHD        49     49     0      1    2    1.1    Y  complete
+  v179       ADHD        49     49     0      1    2    0.9    Y  complete
   v181       ADHD        41     40     1      0    0    0.3    Y  complete
-  v183       ADHD        72     55    17      1    0    5.1    Y  complete
+  v183       ADHD        72     55    17      1    2    4.3    Y  complete
   v18p       ADHD        97     88     9      0    1    1.4    Y  complete
-  v190       ADHD        60     60     0      1    1    4.1    Y  complete
-  v196       ADHD        52     51     1      1    1    1.0    Y  complete
+  v190       ADHD        60     52     8      1    0    4.3    Y  complete
+  v196       ADHD        52     51     1      1    3    1.0    Y  complete
   v198       ADHD        76     75     1      0    1    1.4    Y  complete
   v19p       ADHD        90     77    13      0    2    5.5    Y  complete
-  v1p        ADHD        47     44     3      3    1    1.3    Y  complete
+  v1p        ADHD        47     43     4      3    3    1.3    Y  complete
   v200       ADHD        49     49     0      0    1    3.5    Y  complete
-  v204       ADHD        79     78     1      2    2    0.7    Y  complete
-  v206       ADHD        78     78     0      2    3    0.9    Y  complete
+  v204       ADHD        79     78     1      2    3    0.5    Y  complete
+  v206       ADHD        78     78     0      2    3    0.6    Y  complete
   v209       ADHD       118    112     6      0    3    2.0    Y  complete
   v20p       ADHD       138    131     7      0    4    1.7    Y  complete
   v213       ADHD        48     44     4      0    1    1.2    Y  complete
   v215       ADHD        83     81     2      0    1    0.3    Y  complete
   v219       ADHD       106    106     0      1    0    0.5    Y  complete
-  v21p       ADHD        64     59     5      1    2    1.3    Y  complete
-  v227       ADHD       109    107     2      1    0    0.6    Y  complete
+  v21p       ADHD        64     59     5      1    3    1.3    Y  complete
+  v227       ADHD       109    109     0      1    0    0.8    Y  complete
   v22p       ADHD        47     43     4      0    2    3.8    Y  complete
-  v231       ADHD        77     75     2      1    1    0.8    Y  complete
-  v234       ADHD       133    130     3      3    1    0.6    Y  complete
-  v236       ADHD        52     34    18      1    1    5.9    Y  complete
-  v238       ADHD        38     37     1      1    2    1.7    Y  complete
+  v231       ADHD        77     74     3      1    1    1.0    Y  complete
+  v234       ADHD       133    133     0      3    3    0.3    Y  complete
+  v236       ADHD        52     31    21      1    1    6.6    Y  complete
+  v238       ADHD        38     38     0      1    2    1.4    Y  complete
   v244       ADHD       152    147     5      0    1    0.5    Y  complete
   v246       ADHD        83     78     5      0    0    3.0    Y  complete
   v24p       ADHD        64     52    12      0    3    1.4    Y  complete
   v250       ADHD        54     52     2      0    2    2.4    Y  complete
   v254       ADHD        40     37     3      0    2    1.4    Y  complete
-  v25p       ADHD        38     28    10      1    2      -    Y  failed � Only 28 clean epochs remain (threshold: 30). Subject excluded.
+  v25p       ADHD        38     27    11      1    2      -    Y  failed � Only 27 clean epochs remain (threshold: 30). Subject excluded.
   v263       ADHD        72     59    13      0    1    2.7    Y  complete
   v265       ADHD        71     56    15      0    3    1.2    Y  complete
-  v270       ADHD        92     91     1      1    3    1.0    Y  complete
-  v274       ADHD        67     64     3      1    2    2.2    Y  complete
+  v270       ADHD        92     87     5      1    1    2.5    Y  complete
+  v274       ADHD        67     63     4      1    0    2.6    Y  complete
   v279       ADHD        78     78     0      0    0    1.4    Y  complete
-  v27p       ADHD       112    110     2      5    2    1.1    Y  complete
-  v284       ADHD        60     44    16      1    2    2.2    Y  complete
-  v286       ADHD        44     44     0      2    1    1.9    Y  complete
-  v288       ADHD        78     62    16      1    0    3.8    Y  complete
+  v27p       ADHD       112    104     8      5    2    1.3    Y  complete
+  v284       ADHD        60     51     9      1    1    3.4    Y  complete
+  v286       ADHD        44     44     0      2    3    2.9    Y  complete
+  v288       ADHD        78     65    13      1    0    4.4    Y  complete
   v28p       ADHD       107    102     5      0    3    0.9    Y  complete
   v29p       ADHD        94     55    39      0    3    1.1    Y  complete
-  v30p       ADHD        84     80     4      1    0    2.4    Y  complete
+  v30p       ADHD        84     82     2      1    0    2.4    Y  complete
   v31p       ADHD        45     42     3      0    0    4.5    Y  complete
   v32p       ADHD        70     68     2      0    1    1.1    Y  complete
   v33p       ADHD       114    108     6      0    1    1.5    Y  complete
@@ -83,69 +83,69 @@ PREPROCESSING — PER SUBJECT
   v38p       ADHD        96     60    36      0    2    8.1    Y  complete
   v39p       ADHD        71     66     5      0    0    1.0    Y  complete
   v3p        ADHD       131    127     4      0    1    0.6    Y  complete
-  v40p       ADHD        78     59    19      1    1    3.2    Y  complete
+  v40p       ADHD        78     54    24      1    1    2.5    Y  complete
   v6p        ADHD        68     65     3      0    1    6.0    Y  complete
-  v8p        ADHD        61     61     0      2    2    1.5    Y  complete
-  v107       TDC         77     66    11      1    3    0.3    Y  complete
-  v108       TDC         74     55    19      2    0    2.0    Y  complete
+  v8p        ADHD        61     61     0      2    2    1.3    Y  complete
+  v107       TDC         77     67    10      1    2    0.2    Y  complete
+  v108       TDC         74     63    11      2    2    1.7    Y  complete
   v109       TDC         62     37    25      0    2    3.3    Y  complete
   v110       TDC         64     55     9      0    2    1.4    Y  complete
-  v111       TDC         59     59     0      2    1    1.8    Y  complete
+  v111       TDC         59     52     7      2    3    0.2    Y  complete
   v112       TDC         62     58     4      0    1    2.8    Y  complete
-  v113       TDC         60     58     2      1    2    1.7    Y  complete
-  v114       TDC         51     45     6      3    2    0.8    Y  complete
-  v115       TDC         61     45    16      1    1    0.6    Y  complete
-  v116       TDC         75     43    32      2    4    0.5    Y  complete
-  v117       TDC        100     88    12      3    0    2.5    Y  complete
-  v118       TDC         46     45     1      1    3    0.4    Y  complete
-  v120       TDC         47     42     5      1    2    0.8    Y  complete
-  v121       TDC         63     59     4      2    2    0.3    Y  complete
-  v123       TDC         56     54     2      1    3    1.9    Y  complete
-  v125       TDC         60     55     5      1    0    1.2    Y  complete
+  v113       TDC         60     57     3      1    3    2.7    Y  complete
+  v114       TDC         51     49     2      3    2    1.1    Y  complete
+  v115       TDC         61     44    17      1    1    0.8    Y  complete
+  v116       TDC         75     42    33      2    2    0.3    Y  complete
+  v117       TDC        100     97     3      3    4    1.8    Y  complete
+  v118       TDC         46     45     1      1    3    0.2    Y  complete
+  v120       TDC         47     42     5      1    1    0.4    Y  complete
+  v121       TDC         63     61     2      2    2    0.3    Y  complete
+  v123       TDC         56     54     2      1    3    1.7    Y  complete
+  v125       TDC         60     54     6      1    0    1.8    Y  complete
   v127       TDC         57     55     2      0    0    2.5    Y  complete
   v129       TDC         43     40     3      0    0    1.2    Y  complete
-  v131       TDC         65     55    10      3    1    0.8    Y  complete
-  v133       TDC         58     57     1      1    0    1.1    Y  complete
-  v134       TDC         52     39    13      4    1    2.2    Y  complete
+  v131       TDC         65     55    10      3    1    0.9    Y  complete
+  v133       TDC         58     57     1      1    1    1.0    Y  complete
+  v134       TDC         52     42    10      4    1    2.6    Y  complete
   v138       TDC         48     34    14      0    0    1.4    Y  complete
   v140       TDC         67     62     5      0    2    0.9    Y  complete
   v143       TDC         60     43    17      1    1    2.3    Y  complete
   v147       TDC         55     53     2      0    2    1.2    Y  complete
-  v149       TDC         66     40    26      3    0   13.7    Y  complete
+  v149       TDC         66     39    27      3    1   16.9    Y  complete
   v151       TDC         81     79     2      0    3    2.1    Y  complete
-  v297       TDC         53     50     3      1    6    2.2    Y  complete
+  v297       TDC         53     47     6      1    4    1.2    Y  complete
   v298       TDC         69     68     1      0    3    0.2    Y  complete
-  v299       TDC         86     82     4      3    5    1.3    Y  complete
-  v300       TDC        101     56    45      2    1    8.8    Y  complete
+  v299       TDC         86     82     4      3    4    1.3    Y  complete
+  v300       TDC        101     67    34      2    2    7.2    Y  complete
   v302       TDC         69     50    19      0    3    8.5    Y  complete
-  v303       TDC         75     67     8      3    3    0.5    Y  complete
-  v304       TDC         52     41    11      6    5    0.0    Y  complete
-  v305       TDC         87     87     0      4    2    1.7    Y  complete
+  v303       TDC         75     67     8      3    4    1.1    Y  complete
+  v304       TDC         52     49     3      6    5    0.8    Y  complete
+  v305       TDC         87     86     1      4    4    2.0    Y  complete
   v306       TDC         71     70     1      0    2    0.2    Y  complete
   v307       TDC         89     86     3      0    3    1.1    Y  complete
-  v308       TDC         66     61     5      1    2    1.5    Y  complete
-  v309       TDC         96     78    18      1    1    2.1    Y  complete
-  v310       TDC         69     67     2      1    4    4.6    Y  complete
+  v308       TDC         66     61     5      1    2    1.6    Y  complete
+  v309       TDC         96     77    19      1    1    2.1    Y  complete
+  v310       TDC         69     67     2      1    3    4.2    Y  complete
   v41p       TDC         48     48     0      0    3    1.8    Y  complete
-  v42p       TDC         65     22    43      2    2      -    Y  failed � Only 22 clean epochs remain (threshold: 30). Subject excluded.
-  v43p       TDC         49     49     0      1    2    1.7    Y  complete
+  v42p       TDC         65     25    40      2    2      -    Y  failed � Only 25 clean epochs remain (threshold: 30). Subject excluded.
+  v43p       TDC         49     49     0      1    3    1.4    Y  complete
   v44p       TDC         44     43     1      0    2    2.4    Y  complete
-  v45p       TDC         42     42     0      2    1    2.6    Y  complete
-  v46p       TDC         38     36     2      2    3    2.6    Y  complete
+  v45p       TDC         42     42     0      2    1    2.5    Y  complete
+  v46p       TDC         38     36     2      2    4    2.2    Y  complete
   v47p       TDC         42     33     9      0    2    2.4    Y  complete
-  v48p       TDC         40     39     1      1    2   14.6    Y  complete
+  v48p       TDC         40     33     7      1    3   14.5    Y  complete
   v49p       TDC         65     59     6      0    1    5.4    Y  complete
   v50p       TDC         63     63     0      0    3    5.4    Y  complete
-  v51p       TDC         31     31     0      1    2   16.6    Y  complete
-  v52p       TDC         54     52     2      1    4    5.1    Y  complete
+  v51p       TDC         31     31     0      1    1   15.4    Y  complete
+  v52p       TDC         54     52     2      1    3    4.6    Y  complete
   v53p       TDC         74     64    10      0    1    5.7    Y  complete
-  v54p       TDC         75     31    44      2    2    8.1    Y  complete
+  v54p       TDC         75     32    43      2    2   10.9    Y  complete
   v55p       TDC         55     45    10      0    2    3.0    Y  complete
   v56p       TDC         55     55     0      0    3    3.8    Y  complete
-  v57p       TDC         57     57     0      1    3    1.7    Y  complete
-  v58p       TDC         54     54     0      1    3   11.4    Y  complete
-  v59p       TDC         64     59     5      2    3    3.9    Y  complete
-  v60p       TDC         50     50     0      1    2    3.6    Y  complete
+  v57p       TDC         57     56     1      1    3    2.0    Y  complete
+  v58p       TDC         54     54     0      1    3   10.4    Y  complete
+  v59p       TDC         64     54    10      2    2    4.3    Y  complete
+  v60p       TDC         50     33    17      1    2    3.5    Y  complete
 
 ============================================================
 PIPELINE CONFIGURATION
@@ -161,4 +161,4 @@ PIPELINE CONFIGURATION
   Graph density       : 0.25
   TDA filter steps    : 100
 
-See raw/auc_regression.txt and csd/auc_regression.txt for statistical results.
+See no_filter/auc_regression.txt and surface_laplacian/auc_regression.txt for statistical results.
