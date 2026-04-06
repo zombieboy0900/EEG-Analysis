@@ -79,9 +79,10 @@ ICLABEL_KEEP      = ('brain', 'other')
 AUTOREJECT_N_INTERPOLATE = [1, 4, 32]
 AUTOREJECT_RANDOM_STATE  = 42
 
-# ── Surrogates (reference only — skipped in pipeline_subject.py) ──────────────
-N_SURROGATES         = 200
-SURROGATE_PERCENTILE = 95
+# ── Null model (matrix shuffling) ────────────────────────────────────────────
+# Randomly permute the off-diagonal entries of the mean connectivity matrix
+# K times to build a null Betti curve distribution (Giusti et al. 2015).
+N_SHUFFLES = 200
 
 # ── Quality control ───────────────────────────────────────────────────────────
 # Subjects with fewer clean epochs after AutoReject are excluded.

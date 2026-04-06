@@ -631,23 +631,27 @@ def _compute_betti_features(eps_values, betti_curve):
 
 def _run_tda_pipeline(dist_per_epoch, ch_names):
     """
-    Run TDA on per-epoch distance matrices.
+    Run TDA on per-epoch distance matrices, with epoch-level null model.
 
-    For each (measure, band):
-      - Run ripser on each epoch's distance matrix
-      - Convert filtration parameter from distance ε → edge density ρ
-      - Compute Betti curves per epoch in ρ space
-      - Average Betti curves across epochs
+    For each (measure, band) and each epoch:
+      - Run ripser on the real distance matrix → Betti curve in ρ space
+      - Shuffle the 171 off-diagonal values K=N_SHUFFLES times → K null Betti curves
+      - Compute landscape from real diagram
+    Then average real curves, null curves, and landscapes across epochs.
+    P-value: fraction of per-epoch shuffled AUCs ≤ per-epoch real AUC, averaged
+    across epochs (gives a subject-level p-value per measure/band).
 
     Parameters
     ----------
     dist_per_epoch : dict {(measure, band): ndarray (n_epochs, n_ch, n_ch)}
     ch_names       : list of str
     """
-    rho_values  = np.linspace(0, 1.0, config.N_FILT_STEPS)
+    rho_values = np.linspace(0, 1.0, config.N_FILT_STEPS)
+    n_levels   = config.N_LANDSCAPE_LEVELS
+    n_shuffles = config.N_SHUFFLES
+    n_ch       = len(ch_names)
+    rows, cols = np.triu_indices(n_ch, k=1)   # upper triangle indices (171 pairs)
     tda_results = {}
-
-    n_levels = config.N_LANDSCAPE_LEVELS
 
     for key, dist_stack in dist_per_epoch.items():
         n_epochs      = dist_stack.shape[0]
@@ -655,6 +659,11 @@ def _run_tda_pipeline(dist_per_epoch, ch_names):
                          1: np.zeros(config.N_FILT_STEPS)}
         landscape_sum = {0: np.zeros((n_levels, config.N_FILT_STEPS)),
                          1: np.zeros((n_levels, config.N_FILT_STEPS))}
+        # Null: accumulate sum of shuffled curves across all epochs × shuffles
+        null_sum      = {0: np.zeros(config.N_FILT_STEPS),
+                         1: np.zeros(config.N_FILT_STEPS)}
+        # P-value: per-epoch fraction of shuffled AUCs ≤ real AUC, summed for averaging
+        p_sum         = {0: 0.0, 1: 0.0}
         valid_epochs  = 0
 
         for ep in range(n_epochs):
@@ -662,6 +671,7 @@ def _run_tda_pipeline(dist_per_epoch, ch_names):
             if np.all(dist_matrix == 0) or np.all(dist_matrix == 1):
                 continue
 
+            # ── Real epoch ──────────────────────────────────────────────────
             rho_mapper = _dist_to_rho_mapper(dist_matrix)
             dgms, _    = _compute_persistence(dist_matrix, ch_names)
             _, betti   = _compute_betti_curves(dgms, rho_mapper)
@@ -669,8 +679,6 @@ def _run_tda_pipeline(dist_per_epoch, ch_names):
             for dim in [0, 1]:
                 if dim in betti:
                     betti_sum[dim] += betti[dim]
-
-                # Convert this epoch's diagram to ρ space then compute landscape
                 raw_dgm = dgms[dim] if dim < len(dgms) else np.array([]).reshape(0, 2)
                 if raw_dgm.size > 0:
                     dgm_rho = np.column_stack([
@@ -682,6 +690,37 @@ def _run_tda_pipeline(dist_per_epoch, ch_names):
                     dgm_rho = np.zeros((0, 2))
                 landscape_sum[dim] += _compute_landscape(dgm_rho, rho_values, n_levels)
 
+            real_auc = {dim: float(np.trapz(betti.get(dim, np.zeros(config.N_FILT_STEPS)),
+                                            rho_values))
+                        for dim in [0, 1]}
+
+            # ── Null: K shuffles of this epoch's distance matrix ─────────────
+            upper_vals  = dist_matrix[rows, cols].copy()
+            ep_null_sum = {0: np.zeros(config.N_FILT_STEPS),
+                           1: np.zeros(config.N_FILT_STEPS)}
+            ep_null_aucs = {0: np.zeros(n_shuffles), 1: np.zeros(n_shuffles)}
+
+            for k in range(n_shuffles):
+                perm        = np.random.permutation(upper_vals)
+                shuf_dist   = np.zeros((n_ch, n_ch))
+                shuf_dist[rows, cols] = perm
+                shuf_dist[cols, rows] = perm
+                np.fill_diagonal(shuf_dist, 0.0)
+
+                shuf_rho    = _dist_to_rho_mapper(shuf_dist)
+                shuf_dgms, _ = _compute_persistence(shuf_dist, ch_names)
+                _, shuf_betti = _compute_betti_curves(shuf_dgms, shuf_rho)
+
+                for dim in [0, 1]:
+                    curve = shuf_betti.get(dim, np.zeros(config.N_FILT_STEPS))
+                    ep_null_sum[dim]    += curve
+                    ep_null_aucs[dim][k] = float(np.trapz(curve, rho_values))
+
+            # Accumulate null sum and per-epoch p-values
+            for dim in [0, 1]:
+                null_sum[dim] += ep_null_sum[dim] / n_shuffles
+                p_sum[dim]    += float(np.mean(ep_null_aucs[dim] <= real_auc[dim]))
+
             valid_epochs += 1
 
         if valid_epochs == 0:
@@ -689,22 +728,28 @@ def _run_tda_pipeline(dist_per_epoch, ch_names):
                               1: np.zeros(config.N_FILT_STEPS)}
             mean_landscape = {0: np.zeros((n_levels, config.N_FILT_STEPS)),
                               1: np.zeros((n_levels, config.N_FILT_STEPS))}
+            mean_null      = {0: np.zeros(config.N_FILT_STEPS),
+                              1: np.zeros(config.N_FILT_STEPS)}
+            p_values       = {'B0': np.nan, 'B1': np.nan}
         else:
             mean_betti     = {dim: betti_sum[dim]     / valid_epochs for dim in [0, 1]}
             mean_landscape = {dim: landscape_sum[dim] / valid_epochs for dim in [0, 1]}
+            mean_null      = {dim: null_sum[dim]      / valid_epochs for dim in [0, 1]}
+            p_values       = {f'B{dim}': p_sum[dim] / valid_epochs  for dim in [0, 1]}
 
         features = {
             f'B{dim}': _compute_betti_features(rho_values, mean_betti[dim])
             for dim in [0, 1]
         }
-        # Add landscape AUC (λ_1 only — dominant landscape level) to features
         for dim in [0, 1]:
-            lam1_auc = float(np.trapz(mean_landscape[dim][0], rho_values))
-            features[f'B{dim}']['landscape_auc'] = lam1_auc
+            features[f'B{dim}']['landscape_auc'] = float(
+                np.trapz(mean_landscape[dim][0], rho_values))
+            features[f'B{dim}']['p_value'] = p_values[f'B{dim}']
 
         tda_results[key] = {
             'rho_values':  rho_values,
             'betti':       mean_betti,
+            'null_betti':  mean_null,
             'landscape':   mean_landscape,
             'n_epochs':    valid_epochs,
             'features':    features,
@@ -720,6 +765,7 @@ def _extract_betti_features(tda_results):
         feats    = r['features']
         b0_feats = feats.get('B0', {'auc': 0.0, 'slope': 0.0, 'kurtosis': 0.0})
         b1_feats = feats.get('B1', {'auc': 0.0, 'slope': 0.0, 'kurtosis': 0.0})
+
         subject_features[key] = {
             # Betti curve scalar features
             'auc_b0':           b0_feats['auc'],
@@ -731,9 +777,14 @@ def _extract_betti_features(tda_results):
             # Landscape AUC (λ_1, the dominant level)
             'landscape_auc_b0': b0_feats.get('landscape_auc', 0.0),
             'landscape_auc_b1': b1_feats.get('landscape_auc', 0.0),
+            # Null model p-values (epoch-averaged fraction of shuffled AUCs ≤ real AUC)
+            'p_value_b0':       b0_feats.get('p_value', np.nan),
+            'p_value_b1':       b1_feats.get('p_value', np.nan),
             # Full curves (for visualisation)
             'betti_0':          np.array(r['betti'].get(0, [])),
             'betti_1':          np.array(r['betti'].get(1, [])),
+            'null_betti_0':     np.array(r.get('null_betti', {}).get(0, [])),
+            'null_betti_1':     np.array(r.get('null_betti', {}).get(1, [])),
             'landscape_0':      r.get('landscape', {}).get(0, np.array([])),
             'landscape_1':      r.get('landscape', {}).get(1, np.array([])),
             'rho':              np.array(r['rho_values']),

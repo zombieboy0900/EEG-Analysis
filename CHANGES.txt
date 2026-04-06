@@ -78,8 +78,26 @@ PLANNED CHANGES (in order)
         Already wired in Step 2 — no changes needed here.
       Completed: 2026-04-06
 
-[ ] STEP 5 — Update visualizations
+[x] STEP 5 (null model) — Epoch-level matrix shuffling null model
+      Removed N_SURROGATES / SURROGATE_PERCENTILE from config.py.
+      Added N_SHUFFLES = 200 to config.py.
+      _run_tda_pipeline extended: for each epoch, alongside real PH,
+        shuffle the 171 off-diagonal dist values K=200 times, run ripser
+        on each → K null Betti curves per epoch. Accumulate:
+          - null_sum: running sum of per-epoch mean null curves
+          - p_sum: per-epoch fraction of shuffled AUCs ≤ real AUC
+        After epoch loop: mean_null = null_sum / valid_epochs
+                          p_value  = p_sum  / valid_epochs
+      p_value stored in features dict per dimension (B0, B1).
+      null_betti stored in tda_results[key] for visualisation.
+      _extract_betti_features: surfaces p_value_b0/b1, null_betti_0/1.
+      Note: TDADHD_copy.py phase-randomization surrogates left intact
+      (prototype file — kept as-is per project brief).
+      Completed: 2026-04-06
+
+[ ] STEP 6 — Update visualizations
       Betti curve plots: x-axis now ρ (edge density), not ε (distance).
+      Add null Betti curve overlay (mean null + CI band).
       Add landscape plots.
       Label axes correctly.
 
@@ -93,5 +111,6 @@ COMPLETED CHANGES
 [2026-04-06] STEP 2 complete — epoch-level PH + edge density filtration in pipeline/pipeline_subject.py.
 [2026-04-06] STEP 3 complete — persistent landscapes computed and averaged per epoch.
 [2026-04-06] STEP 4 complete — all config flags wired into pipeline_subject.py.
+[2026-04-06] STEP 5 complete — epoch-level null model (K=200 shuffles per epoch).
 
 ================================================================================
