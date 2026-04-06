@@ -48,10 +48,18 @@ PLANNED CHANGES (in order)
         on config.COMPUTE_SURFACE_LAPLACIAN flag.
       Completed: 2026-04-06
 
-[ ] STEP 3 — Persistent landscapes
-      After per-epoch PH, compute persistent landscape for each epoch.
-      Average landscapes across epochs → mean landscape per (measure, band).
-      Store alongside mean Betti curves.
+[x] STEP 3 — Persistent landscapes
+      New function _compute_landscape(dgm_rho, rho_values, n_levels):
+        - Builds tent function for each (birth_ρ, death_ρ) pair
+        - λ_k(t) = k-th largest tent value at each ρ step
+        - Returns (n_levels, N_FILT_STEPS) array
+      _run_tda_pipeline extended: computes landscape per epoch in ρ space,
+        sums and averages across epochs alongside Betti curves.
+      landscape_auc (AUC of λ_1) added to features dict for H0 and H1.
+      _extract_betti_features: surfaces landscape_auc_b0/b1 and full
+        landscape arrays (landscape_0, landscape_1) for visualisation.
+      config.py: added N_LANDSCAPE_LEVELS = 5.
+      Completed: 2026-04-06
 
 [ ] STEP 4 — Wire config flags into pipeline_subject.py
       Respect COMPUTE_* flags when running connectivity and spatial filter steps.
@@ -72,5 +80,6 @@ COMPLETED CHANGES
 [2026-04-06] Created CHANGES.txt (this file) for tracking.
 [2026-04-06] STEP 1 complete — added pipeline feature flags to pipeline/config.py.
 [2026-04-06] STEP 2 complete — epoch-level PH + edge density filtration in pipeline/pipeline_subject.py.
+[2026-04-06] STEP 3 complete — persistent landscapes computed and averaged per epoch.
 
 ================================================================================

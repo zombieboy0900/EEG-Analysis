@@ -56,7 +56,8 @@ CONN_MEASURES = (
 )
 
 # ── TDA ───────────────────────────────────────────────────────────────────────
-N_FILT_STEPS = 100   # filtration resolution for Betti curves
+N_FILT_STEPS       = 100  # filtration resolution for Betti curves and landscapes
+N_LANDSCAPE_LEVELS = 5    # number of landscape levels to keep (λ_1 … λ_5)
 
 # ── Graph theory ──────────────────────────────────────────────────────────────
 GRAPH_DENSITY  = 0.25                           # proportional threshold for graph metrics
