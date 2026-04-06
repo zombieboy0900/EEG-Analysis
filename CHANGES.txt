@@ -95,15 +95,27 @@ PLANNED CHANGES (in order)
       (prototype file — kept as-is per project brief).
       Completed: 2026-04-06
 
-[ ] STEP 6 — Update visualizations
-      Betti curve plots: x-axis now ρ (edge density), not ε (distance).
-      Add null Betti curve overlay (mean null + CI band).
-      Add landscape plots.
-      Label axes correctly.
+[x] STEP 6 — Update visualizations
+      Three new plot functions added directly to pipeline_subject.py (not TDADHD_copy.py):
+        _plot_betti_curves  — x-axis ρ; real curve (solid) + null curve (dashed grey);
+                              saves betti_0_curves.html and betti_1_curves.html
+        _plot_euler_curves  — χ(ρ) = β₀ − β₁ derived from mean Betti curves;
+                              saves euler_curves.html
+        _plot_landscape     — λ₁ (first landscape level) for H0 and H1;
+                              saves landscape_0_curves.html and landscape_1_curves.html
+      _generate_figures updated:
+        proto.plot_betti_curves       → _plot_betti_curves (local)
+        proto.plot_persistence_diagrams removed (diagrams no longer stored in tda_results)
+        proto.plot_euler_curves       → _plot_euler_curves (local, added for both pipelines)
+        _plot_landscape added for both no-filter and surface-laplacian branches
+      All other proto.* calls (connectivity heatmaps, graph metrics, density sweep,
+        network viz, edge weight distributions) left unchanged.
+      Completed: 2026-04-06
 
 ================================================================================
 COMPLETED CHANGES
 ================================================================================
+[2026-04-06] STEP 6 complete — new TDA plot functions (_plot_betti_curves, _plot_euler_curves, _plot_landscape) in pipeline_subject.py; _generate_figures updated.
 
 [2026-04-06] Created branch refactor/clique-topology from master.
 [2026-04-06] Created CHANGES.txt (this file) for tracking.

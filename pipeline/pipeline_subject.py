@@ -1143,6 +1143,144 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
 # FIGURES  (only called when figures=True)
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _plot_betti_curves(tda_results, out_dir, pipeline_label=''):
+    """Betti-0 and Betti-1 curves (real + null overlay) vs edge density ρ."""
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    bands   = list(config.FREQ_BANDS.keys())
+    measures = sorted({k[0] for k in tda_results})
+    colors   = {'coherence': 'blue', 'wpli': 'red', 'correlation': 'green'}
+
+    for dim in (0, 1):
+        fig = make_subplots(rows=1, cols=len(bands), subplot_titles=bands,
+                            shared_yaxes=True)
+        for col, b in enumerate(bands):
+            for m in measures:
+                key = (m, b)
+                if key not in tda_results:
+                    continue
+                r   = tda_results[key]
+                rho = r['rho_values']
+                c   = colors.get(m, 'black')
+
+                # Real Betti curve — solid
+                fig.add_trace(go.Scatter(
+                    x=rho, y=r['betti'][dim],
+                    mode='lines', name=m,
+                    line=dict(color=c, width=2),
+                    showlegend=(col == 0),
+                ), row=1, col=col + 1)
+
+                # Null Betti curve — dashed grey
+                null = r.get('null_betti', {}).get(dim)
+                if null is not None:
+                    fig.add_trace(go.Scatter(
+                        x=rho, y=null,
+                        mode='lines', name=f'{m} null',
+                        line=dict(color='grey', width=1, dash='dash'),
+                        showlegend=(col == 0),
+                    ), row=1, col=col + 1)
+
+            fig.update_xaxes(title_text='ρ (edge density)', row=1, col=col + 1)
+
+        fig.update_yaxes(title_text=f'β{dim}', row=1, col=1)
+        lbl_str = f' — {pipeline_label}' if pipeline_label else ''
+        fig.update_layout(
+            title=f'Betti-{dim} Curves vs Edge Density ρ{lbl_str}',
+            height=400, width=300 * len(bands),
+        )
+        fname = f'betti_{dim}_curves.html'
+        fig.write_html(os.path.join(out_dir, fname))
+        logger.info(f"  Saved {fname}")
+
+
+def _plot_euler_curves(tda_results, out_dir, pipeline_label=''):
+    """Euler characteristic χ(ρ) = β₀ − β₁ vs edge density ρ."""
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    bands    = list(config.FREQ_BANDS.keys())
+    measures = sorted({k[0] for k in tda_results})
+    colors   = {'coherence': 'blue', 'wpli': 'red', 'correlation': 'green'}
+
+    fig = make_subplots(rows=1, cols=len(bands), subplot_titles=bands,
+                        shared_yaxes=True)
+    for col, b in enumerate(bands):
+        for m in measures:
+            key = (m, b)
+            if key not in tda_results:
+                continue
+            r     = tda_results[key]
+            rho   = r['rho_values']
+            euler = np.array(r['betti'][0]) - np.array(r['betti'][1])
+            c     = colors.get(m, 'black')
+
+            fig.add_trace(go.Scatter(
+                x=rho, y=euler,
+                mode='lines', name=m,
+                line=dict(color=c, width=2),
+                showlegend=(col == 0),
+            ), row=1, col=col + 1)
+
+        fig.update_xaxes(title_text='ρ (edge density)', row=1, col=col + 1)
+
+    fig.update_yaxes(title_text='χ = β₀ − β₁', row=1, col=1)
+    lbl_str = f' — {pipeline_label}' if pipeline_label else ''
+    fig.update_layout(
+        title=f'Euler Characteristic χ(ρ){lbl_str}',
+        height=400, width=300 * len(bands),
+    )
+    fname = 'euler_curves.html'
+    fig.write_html(os.path.join(out_dir, fname))
+    logger.info(f"  Saved {fname}")
+
+
+def _plot_landscape(tda_results, out_dir, pipeline_label=''):
+    """Persistent landscape λ₁ for H0 and H1 vs edge density ρ."""
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    bands    = list(config.FREQ_BANDS.keys())
+    measures = sorted({k[0] for k in tda_results})
+    colors   = {'coherence': 'blue', 'wpli': 'red', 'correlation': 'green'}
+
+    for dim in (0, 1):
+        fig = make_subplots(rows=1, cols=len(bands), subplot_titles=bands,
+                            shared_yaxes=True)
+        for col, b in enumerate(bands):
+            for m in measures:
+                key = (m, b)
+                if key not in tda_results:
+                    continue
+                r   = tda_results[key]
+                rho = r['rho_values']
+                ls  = r.get('landscape', {}).get(dim)
+                if ls is None or ls.ndim < 2 or ls.shape[0] == 0:
+                    continue
+                c = colors.get(m, 'black')
+
+                # λ₁ is the first row (index 0) of the landscape array
+                fig.add_trace(go.Scatter(
+                    x=rho, y=ls[0],
+                    mode='lines', name=m,
+                    line=dict(color=c, width=2),
+                    showlegend=(col == 0),
+                ), row=1, col=col + 1)
+
+            fig.update_xaxes(title_text='ρ (edge density)', row=1, col=col + 1)
+
+        fig.update_yaxes(title_text=f'λ₁ H{dim}', row=1, col=1)
+        lbl_str = f' — {pipeline_label}' if pipeline_label else ''
+        fig.update_layout(
+            title=f'Persistent Landscape λ₁ H{dim}{lbl_str}',
+            height=400, width=300 * len(bands),
+        )
+        fname = f'landscape_{dim}_curves.html'
+        fig.write_html(os.path.join(out_dir, fname))
+        logger.info(f"  Saved {fname}")
+
+
 def _generate_figures(out_dir, ch_names,
                       conn_matrices, dist_matrices, tda_results, graph_results,
                       conn_sl=None, dist_sl=None, tda_sl=None):
@@ -1175,8 +1313,9 @@ def _generate_figures(out_dir, ch_names,
 
     lbl = 'No Filter'
     proto.plot_connectivity_heatmaps(conn_matrices, ch_names, out_dir=no_filter_dir, pipeline_label=lbl)
-    proto.plot_betti_curves(tda_results, out_dir=no_filter_dir, pipeline_label=lbl)
-    proto.plot_persistence_diagrams(tda_results, out_dir=no_filter_dir, pipeline_label=lbl)
+    _plot_betti_curves(tda_results, out_dir=no_filter_dir, pipeline_label=lbl)
+    _plot_euler_curves(tda_results, out_dir=no_filter_dir, pipeline_label=lbl)
+    _plot_landscape(tda_results, out_dir=no_filter_dir, pipeline_label=lbl)
     proto.plot_graph_metrics(graph_results, out_dir=no_filter_dir, pipeline_label=lbl)
     proto.plot_density_sweep(sweep, densities, out_dir=no_filter_dir, pipeline_label=lbl)
     proto.plot_network_viz(conn_matrices, ch_names, out_dir=no_filter_dir, pipeline_label=lbl,
@@ -1188,7 +1327,9 @@ def _generate_figures(out_dir, ch_names,
         graph_results_sl = _load_pkl(cache_dir, 'graph_results_csd.pkl')
         sweep_sl, densities_sl = _load_pkl(cache_dir, 'density_sweep_csd.pkl')
         proto.plot_connectivity_heatmaps(conn_sl, ch_names, out_dir=sl_dir, pipeline_label=lbl)
-        proto.plot_betti_curves(tda_sl, out_dir=sl_dir, pipeline_label=lbl)
+        _plot_betti_curves(tda_sl, out_dir=sl_dir, pipeline_label=lbl)
+        _plot_euler_curves(tda_sl, out_dir=sl_dir, pipeline_label=lbl)
+        _plot_landscape(tda_sl, out_dir=sl_dir, pipeline_label=lbl)
         proto.plot_graph_metrics(graph_results_sl, out_dir=sl_dir, pipeline_label=lbl)
         proto.plot_density_sweep(sweep_sl, densities_sl, out_dir=sl_dir, pipeline_label=lbl)
         proto.plot_network_viz(conn_sl, ch_names, out_dir=sl_dir, pipeline_label=lbl,
