@@ -63,8 +63,12 @@ PLANNED CHANGES (in order)
 
 [x] STEP 4 — Wire config flags into pipeline_subject.py
       INTERPOLATE_BAD_CHANNELS:
-        _preprocess: interpolation now gated — if False, bad channels are
-        flagged but kept unfilled (excluded from avg ref, ICA sees real signal).
+        _preprocess: RANSAC runs for diagnostics only when False.
+        Rationale: RANSAC may mistake genuine ADHD signal for noise
+        (atypical spatial patterns → systematic preprocessing bias vs TDC).
+        When False: info['bads'] cleared after RANSAC — all channels treated
+        as good, avg reference and ICA see the full unmodified channel set.
+        When True: original interpolation behaviour preserved.
       COMPUTE_NO_SPATIAL_FILTER:
         Steps 2-5 (connectivity, TDA, betti features, graph theory) for the
         no-spatial-filter pipeline are now gated on this flag. If False,

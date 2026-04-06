@@ -179,15 +179,21 @@ def _preprocess(mat_path, subject_id, logger):
     logger.info(f"RANSAC bad channels: {rsc.bad_chs_}")
     del epochs_temp
 
-    # Optionally interpolate bad channels before ICA (controlled by INTERPOLATE_BAD_CHANNELS).
-    # When False, bad channels remain flagged in info['bads'] — MNE excludes them from
-    # average reference but keeps them in the data. More honest about the raw signal.
+    # INTERPOLATE_BAD_CHANNELS = False: RANSAC is run for diagnostics only.
+    # Rationale: RANSAC may flag genuine ADHD signal as artifactual (atypical
+    # spatial patterns look like noise to a neighbour-prediction algorithm).
+    # Interpolating would replace true signal with synthetic estimates, introducing
+    # a systematic preprocessing bias against ADHD subjects.
+    # When False: clear info['bads'] so all channels are treated as good —
+    # average reference and ICA both see the full unmodified channel set.
     if rsc.bad_chs_ and config.INTERPOLATE_BAD_CHANNELS:
         raw.interpolate_bads(reset_bads=True)
         logger.info(f"Interpolated {len(rsc.bad_chs_)} bad channels before ICA")
-    elif rsc.bad_chs_:
-        logger.info(f"Keeping {len(rsc.bad_chs_)} bad channels unfilled "
-                    f"(INTERPOLATE_BAD_CHANNELS=False)")
+    else:
+        raw.info['bads'] = []
+        if rsc.bad_chs_:
+            logger.info(f"RANSAC flagged {len(rsc.bad_chs_)} channels (diagnostic only — "
+                        f"not interpolated, treated as good): {rsc.bad_chs_}")
 
     # Average reference applied after bad channel interpolation so the mean
     # is not contaminated by any broken electrodes.
