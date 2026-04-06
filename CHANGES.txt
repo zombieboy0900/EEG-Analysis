@@ -61,11 +61,18 @@ PLANNED CHANGES (in order)
       config.py: added N_LANDSCAPE_LEVELS = 5.
       Completed: 2026-04-06
 
-[ ] STEP 4 — Wire config flags into pipeline_subject.py
-      Respect COMPUTE_* flags when running connectivity and spatial filter steps.
-      Skip coherence/wPLI computation if flags are False.
-      Skip surface Laplacian / no-spatial-filter pipeline if flags are False.
-      Skip bad channel interpolation if INTERPOLATE_BAD_CHANNELS is False.
+[x] STEP 4 — Wire config flags into pipeline_subject.py
+      INTERPOLATE_BAD_CHANNELS:
+        _preprocess: interpolation now gated — if False, bad channels are
+        flagged but kept unfilled (excluded from avg ref, ICA sees real signal).
+      COMPUTE_NO_SPATIAL_FILTER:
+        Steps 2-5 (connectivity, TDA, betti features, graph theory) for the
+        no-spatial-filter pipeline are now gated on this flag. If False,
+        all those steps are skipped with a log message. Figures block also
+        guarded against None dist_per_epoch.
+      COMPUTE_COHERENCE, COMPUTE_WPLI, COMPUTE_SURFACE_LAPLACIAN:
+        Already wired in Step 2 — no changes needed here.
+      Completed: 2026-04-06
 
 [ ] STEP 5 — Update visualizations
       Betti curve plots: x-axis now ρ (edge density), not ε (distance).
@@ -81,5 +88,6 @@ COMPLETED CHANGES
 [2026-04-06] STEP 1 complete — added pipeline feature flags to pipeline/config.py.
 [2026-04-06] STEP 2 complete — epoch-level PH + edge density filtration in pipeline/pipeline_subject.py.
 [2026-04-06] STEP 3 complete — persistent landscapes computed and averaged per epoch.
+[2026-04-06] STEP 4 complete — all config flags wired into pipeline_subject.py.
 
 ================================================================================

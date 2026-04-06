@@ -179,12 +179,15 @@ def _preprocess(mat_path, subject_id, logger):
     logger.info(f"RANSAC bad channels: {rsc.bad_chs_}")
     del epochs_temp
 
-    # Interpolate bad channels before ICA so the fit uses a complete channel set.
-    # rsc.bad_chs_ is still returned for diagnostics — info['bads'] is cleared here
-    # so both no-filter and surface laplacian pipelines downstream see the same base data.
-    if rsc.bad_chs_:
+    # Optionally interpolate bad channels before ICA (controlled by INTERPOLATE_BAD_CHANNELS).
+    # When False, bad channels remain flagged in info['bads'] — MNE excludes them from
+    # average reference but keeps them in the data. More honest about the raw signal.
+    if rsc.bad_chs_ and config.INTERPOLATE_BAD_CHANNELS:
         raw.interpolate_bads(reset_bads=True)
         logger.info(f"Interpolated {len(rsc.bad_chs_)} bad channels before ICA")
+    elif rsc.bad_chs_:
+        logger.info(f"Keeping {len(rsc.bad_chs_)} bad channels unfilled "
+                    f"(INTERPOLATE_BAD_CHANNELS=False)")
 
     # Average reference applied after bad channel interpolation so the mean
     # is not contaminated by any broken electrodes.
@@ -931,20 +934,26 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
                         f"{len(ch_names)} channels)")
 
         # ── Step 2: Connectivity ──────────────────────────────────────────────
-        n_measures = len(config.CONN_MEASURES) * len(config.FREQ_BANDS)
-        if _cache_exists(cache_dir, 'conn_matrices.npz', 'dist_matrices.npz'):
-            logger.info("[2/5] Connectivity — loading from cache")
-            conn_per_epoch = _load_npz(cache_dir, 'conn_matrices')
-            dist_per_epoch = _load_npz(cache_dir, 'dist_matrices')
-        else:
-            logger.info(f"[2/5] Computing connectivity ({n_measures} measure/band combinations)...")
-            conn_per_epoch, dist_per_epoch, ch_names = _compute_all_connectivity(epochs_clean, logger)
-            _save_npz(cache_dir, 'conn_matrices', conn_per_epoch)
-            _save_npz(cache_dir, 'dist_matrices', dist_per_epoch)
-            _write_key(cache_dir, 'connectivity', conn_key)
+        conn_per_epoch = dist_per_epoch = conn_matrices = tda_results = betti_features = None
+        graph_results  = None
 
-        # Mean matrices (epoch-average) used for graph theory
-        conn_matrices = {k: v.mean(axis=0) for k, v in conn_per_epoch.items()}
+        if config.COMPUTE_NO_SPATIAL_FILTER:
+            n_measures = len(config.CONN_MEASURES) * len(config.FREQ_BANDS)
+            if _cache_exists(cache_dir, 'conn_matrices.npz', 'dist_matrices.npz'):
+                logger.info("[2/5] Connectivity — loading from cache")
+                conn_per_epoch = _load_npz(cache_dir, 'conn_matrices')
+                dist_per_epoch = _load_npz(cache_dir, 'dist_matrices')
+            else:
+                logger.info(f"[2/5] Computing connectivity ({n_measures} measure/band combinations)...")
+                conn_per_epoch, dist_per_epoch, ch_names = _compute_all_connectivity(epochs_clean, logger)
+                _save_npz(cache_dir, 'conn_matrices', conn_per_epoch)
+                _save_npz(cache_dir, 'dist_matrices', dist_per_epoch)
+                _write_key(cache_dir, 'connectivity', conn_key)
+
+            # Mean matrices (epoch-average) used for graph theory
+            conn_matrices = {k: v.mean(axis=0) for k, v in conn_per_epoch.items()}
+        else:
+            logger.info("[2/5] Skipping no-spatial-filter connectivity (COMPUTE_NO_SPATIAL_FILTER=False)")
 
         # Surface Laplacian connectivity
         conn_sl = dist_sl = dist_per_epoch_sl = None
@@ -965,14 +974,17 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
                 dist_sl = {k: v.mean(axis=0) for k, v in dist_per_epoch_sl.items()}
 
         # ── Step 3: TDA ───────────────────────────────────────────────────────
-        if _cache_exists(cache_dir, 'tda_results.pkl'):
-            logger.info("[3/5] TDA — loading from cache")
-            tda_results = _load_pkl(cache_dir, 'tda_results.pkl')
+        if config.COMPUTE_NO_SPATIAL_FILTER:
+            if _cache_exists(cache_dir, 'tda_results.pkl'):
+                logger.info("[3/5] TDA — loading from cache")
+                tda_results = _load_pkl(cache_dir, 'tda_results.pkl')
+            else:
+                logger.info("[3/5] Running TDA pipeline (per-epoch, then averaging Betti curves)...")
+                tda_results = _run_tda_pipeline(dist_per_epoch, ch_names)
+                _save_pkl(cache_dir, 'tda_results.pkl', tda_results)
+                _write_key(cache_dir, 'tda', tda_key)
         else:
-            logger.info("[3/5] Running TDA pipeline (per-epoch, then averaging Betti curves)...")
-            tda_results = _run_tda_pipeline(dist_per_epoch, ch_names)
-            _save_pkl(cache_dir, 'tda_results.pkl', tda_results)
-            _write_key(cache_dir, 'tda', tda_key)
+            logger.info("[3/5] Skipping no-spatial-filter TDA (COMPUTE_NO_SPATIAL_FILTER=False)")
 
         # TDA on Surface Laplacian
         tda_sl = None
@@ -986,15 +998,18 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
                 _save_pkl(cache_dir, 'tda_csd.pkl', tda_sl)
 
         # ── Step 4: Betti features (group analysis) ───────────────────────────
-        if _cache_exists(cache_dir, 'betti_features.pkl'):
-            logger.info("[4/5] Betti features — loading from cache")
-            betti_features = _load_pkl(cache_dir, 'betti_features.pkl')
+        if config.COMPUTE_NO_SPATIAL_FILTER:
+            if _cache_exists(cache_dir, 'betti_features.pkl'):
+                logger.info("[4/5] Betti features — loading from cache")
+                betti_features = _load_pkl(cache_dir, 'betti_features.pkl')
+            else:
+                logger.info("[4/5] Extracting Betti features...")
+                betti_features = _extract_betti_features(tda_results)
+                _save_pkl(cache_dir, 'betti_features.pkl', betti_features)
+                _save_pkl(out_dir, 'betti_features.pkl', betti_features)
+                logger.info("Saved betti_features.pkl")
         else:
-            logger.info("[4/5] Extracting Betti features...")
-            betti_features = _extract_betti_features(tda_results)
-            _save_pkl(cache_dir, 'betti_features.pkl', betti_features)
-            _save_pkl(out_dir, 'betti_features.pkl', betti_features)
-            logger.info("Saved betti_features.pkl")
+            logger.info("[4/5] Skipping no-spatial-filter Betti features (COMPUTE_NO_SPATIAL_FILTER=False)")
 
         # Surface Laplacian betti features
         if config.COMPUTE_SURFACE_LAPLACIAN and tda_sl is not None:
@@ -1008,21 +1023,24 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
                 logger.info("Saved betti_features_csd.pkl")
 
         # ── Step 5: Graph theory ──────────────────────────────────────────────
-        if _cache_exists(cache_dir, 'graph_results.pkl'):
-            logger.info("[5/5] Graph theory — loading from cache")
-            graph_results = _load_pkl(cache_dir, 'graph_results.pkl')
-        else:
-            logger.info("[5/5] Running graph theory pipeline...")
-            graph_results = _run_graph_pipeline(conn_matrices, ch_names)
-            _save_pkl(cache_dir, 'graph_results.pkl', graph_results)
+        if config.COMPUTE_NO_SPATIAL_FILTER:
+            if _cache_exists(cache_dir, 'graph_results.pkl'):
+                logger.info("[5/5] Graph theory — loading from cache")
+                graph_results = _load_pkl(cache_dir, 'graph_results.pkl')
+            else:
+                logger.info("[5/5] Running graph theory pipeline...")
+                graph_results = _run_graph_pipeline(conn_matrices, ch_names)
+                _save_pkl(cache_dir, 'graph_results.pkl', graph_results)
 
-        if _cache_exists(cache_dir, 'density_sweep.pkl'):
-            logger.debug("  Density sweep — loading from cache")
+            if _cache_exists(cache_dir, 'density_sweep.pkl'):
+                logger.debug("  Density sweep — loading from cache")
+            else:
+                logger.info("  Running density sweep (0.10 -> 0.50, 9 steps)...")
+                sweep, densities = _run_density_sweep(conn_matrices, ch_names)
+                _save_pkl(cache_dir, 'density_sweep.pkl', (sweep, densities))
+                _write_key(cache_dir, 'graph', graph_key)
         else:
-            logger.info("  Running density sweep (0.10 -> 0.50, 9 steps)...")
-            sweep, densities = _run_density_sweep(conn_matrices, ch_names)
-            _save_pkl(cache_dir, 'density_sweep.pkl', (sweep, densities))
-            _write_key(cache_dir, 'graph', graph_key)
+            logger.info("[5/5] Skipping no-spatial-filter graph theory (COMPUTE_NO_SPATIAL_FILTER=False)")
 
         # Surface Laplacian graph theory + density sweep
         if config.COMPUTE_SURFACE_LAPLACIAN and conn_sl is not None:
@@ -1042,12 +1060,14 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
 
         # ── Figures (optional) ────────────────────────────────────────────────
         if figures:
-            # Mean conn/dist matrices passed to figures (averaged across epochs)
-            dist_matrices_mean = {k: v.mean(axis=0) for k, v in dist_per_epoch.items()}
             logger.info("Generating figures...")
+            dist_matrices_mean = (
+                {k: v.mean(axis=0) for k, v in dist_per_epoch.items()}
+                if dist_per_epoch is not None else {}
+            )
             _generate_figures(
                 out_dir, ch_names,
-                conn_matrices, dist_matrices_mean, tda_results, graph_results,
+                conn_matrices or {}, dist_matrices_mean, tda_results or {}, graph_results or {},
                 conn_sl=conn_sl, dist_sl=dist_sl,
                 tda_sl=tda_sl,
             )
