@@ -21,14 +21,15 @@ References:
 PLANNED CHANGES (in order)
 ================================================================================
 
-[ ] STEP 1 — pipeline/config.py
-      Add optional pipeline flags:
-        COMPUTE_NO_SPATIAL_FILTER  (bool)
-        COMPUTE_SURFACE_LAPLACIAN  (bool)
-        INTERPOLATE_BAD_CHANNELS   (bool)
-        COMPUTE_WPLI               (bool)
-        COMPUTE_COHERENCE          (bool)
-      Set defaults: correlation-only, both pipelines on, interpolation on.
+[x] STEP 1 — pipeline/config.py
+      Added optional pipeline flags with defaults:
+        INTERPOLATE_BAD_CHANNELS  = False  (no interpolation)
+        COMPUTE_NO_SPATIAL_FILTER = True   (run raw/no-filter pipeline)
+        COMPUTE_SURFACE_LAPLACIAN = False  (skip CSD pipeline)
+        COMPUTE_COHERENCE         = False  (skip coherence)
+        COMPUTE_WPLI              = False  (skip wPLI)
+      CONN_MEASURES now derived automatically from flags.
+      Completed: 2026-04-06
 
 [ ] STEP 2 — Epoch-level PH + edge density filtration
       Instead of averaging connectivity matrices across epochs, compute
@@ -58,5 +59,6 @@ COMPLETED CHANGES
 
 [2026-04-06] Created branch refactor/clique-topology from master.
 [2026-04-06] Created CHANGES.txt (this file) for tracking.
+[2026-04-06] STEP 1 complete — added pipeline feature flags to pipeline/config.py.
 
 ================================================================================

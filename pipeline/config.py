@@ -38,7 +38,22 @@ FREQ_BANDS = {
     'gamma': (30, 45),
 }
 
-CONN_MEASURES = ['coherence', 'wpli', 'correlation']
+# ── Pipeline feature flags ────────────────────────────────────────────────────
+# Control which parts of the pipeline are active.
+# Defaults reflect the current analysis scope (correlation-only, no spatial filter).
+
+INTERPOLATE_BAD_CHANNELS  = False  # interpolate RANSAC bad channels before connectivity
+COMPUTE_NO_SPATIAL_FILTER = True   # run pipeline on raw (no spatial filter) epochs
+COMPUTE_SURFACE_LAPLACIAN = False  # run pipeline on CSD-transformed epochs
+COMPUTE_COHERENCE         = False  # include coherence as a connectivity measure
+COMPUTE_WPLI              = False  # include wPLI as a connectivity measure
+
+# Active connectivity measures — derived from flags above, do not edit directly.
+CONN_MEASURES = (
+    (['coherence'] if COMPUTE_COHERENCE else []) +
+    (['wpli']      if COMPUTE_WPLI      else []) +
+    ['correlation']
+)
 
 # ── TDA ───────────────────────────────────────────────────────────────────────
 N_FILT_STEPS = 100   # filtration resolution for Betti curves
