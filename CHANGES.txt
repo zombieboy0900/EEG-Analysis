@@ -31,11 +31,22 @@ PLANNED CHANGES (in order)
       CONN_MEASURES now derived automatically from flags.
       Completed: 2026-04-06
 
-[ ] STEP 2 — Epoch-level PH + edge density filtration
-      Instead of averaging connectivity matrices across epochs, compute
-      a connectivity matrix per epoch, run ripser on each, collect
-      persistence diagrams, then average Betti curves.
-      Reparameterize x-axis: distance ε → edge density ρ = k / C(N,2).
+[x] STEP 2 — Epoch-level PH + edge density filtration
+      Functions changed in pipeline/pipeline_subject.py:
+        _compute_correlation  — returns (n_epochs, n_ch, n_ch) instead of averaged matrix
+        _compute_coherence    — same
+        _compute_wpli         — same
+        _compute_all_connectivity — respects COMPUTE_* flags; returns per-epoch 3D arrays;
+                                    also computes mean matrices for graph theory
+        _dist_to_rho_mapper   — NEW: maps distance values → edge density ρ = k/C(N,2)
+        _compute_betti_curves — x-axis now ρ (not ε); takes rho_mapper argument
+        _run_tda_pipeline     — loops over epochs, averages Betti curves; drops generators
+                                (no longer needed without single-diagram reference)
+        _extract_betti_features — renamed eps → rho, added n_epochs field
+      run_subject updated: conn_matrices (mean) for graph theory separated from
+        per-epoch dist_per_epoch passed to TDA. Surface Laplacian blocks gated
+        on config.COMPUTE_SURFACE_LAPLACIAN flag.
+      Completed: 2026-04-06
 
 [ ] STEP 3 — Persistent landscapes
       After per-epoch PH, compute persistent landscape for each epoch.
@@ -60,5 +71,6 @@ COMPLETED CHANGES
 [2026-04-06] Created branch refactor/clique-topology from master.
 [2026-04-06] Created CHANGES.txt (this file) for tracking.
 [2026-04-06] STEP 1 complete — added pipeline feature flags to pipeline/config.py.
+[2026-04-06] STEP 2 complete — epoch-level PH + edge density filtration in pipeline/pipeline_subject.py.
 
 ================================================================================

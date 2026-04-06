@@ -348,77 +348,93 @@ def _apply_csd(epochs_clean, logger):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _compute_coherence(epochs_data, sfreq, fmin, fmax):
+    """Return per-epoch coherence matrices stacked as (n_epochs, n_ch, n_ch)."""
     n_epochs, n_ch, n_times = epochs_data.shape
-    conn    = np.zeros((n_ch, n_ch))
     nperseg = min(128, n_times)
-    for i in range(n_ch):
-        for j in range(i + 1, n_ch):
-            vals = []
-            for ep in range(n_epochs):
+    all_conn = np.zeros((n_epochs, n_ch, n_ch))
+    for ep in range(n_epochs):
+        conn = np.zeros((n_ch, n_ch))
+        for i in range(n_ch):
+            for j in range(i + 1, n_ch):
                 f, cxy = coherence(epochs_data[ep, i], epochs_data[ep, j],
                                    fs=sfreq, nperseg=nperseg)
                 mask = (f >= fmin) & (f <= fmax)
                 if mask.any():
-                    vals.append(float(np.mean(cxy[mask])))
-            if vals:
-                conn[i, j] = conn[j, i] = float(np.mean(vals))
-    np.fill_diagonal(conn, 1.0)
-    return conn
+                    conn[i, j] = conn[j, i] = float(np.mean(cxy[mask]))
+        np.fill_diagonal(conn, 1.0)
+        all_conn[ep] = conn
+    return all_conn
 
 
 def _compute_wpli(epochs_data, sfreq, fmin, fmax):
+    """Return per-epoch wPLI matrices stacked as (n_epochs, n_ch, n_ch).
+    Each epoch is treated as an independent estimate (single-epoch wPLI)."""
     n_epochs, n_ch, n_times = epochs_data.shape
-    conn    = np.zeros((n_ch, n_ch))
     nperseg = min(128, n_times)
-    for i in range(n_ch):
-        for j in range(i + 1, n_ch):
-            imag_sum = imag_abs_sum = imag_sq_sum = 0.0
-            for ep in range(n_epochs):
-                f, sxy  = csd(epochs_data[ep, i], epochs_data[ep, j],
-                              fs=sfreq, nperseg=nperseg)
+    all_conn = np.zeros((n_epochs, n_ch, n_ch))
+    for ep in range(n_epochs):
+        conn = np.zeros((n_ch, n_ch))
+        for i in range(n_ch):
+            for j in range(i + 1, n_ch):
+                f, sxy = csd(epochs_data[ep, i], epochs_data[ep, j],
+                             fs=sfreq, nperseg=nperseg)
                 mask = (f >= fmin) & (f <= fmax)
                 if not mask.any():
                     continue
                 im = np.imag(sxy[mask])
-                imag_sum     += float(np.sum(im))
-                imag_abs_sum += float(np.sum(np.abs(im)))
-                imag_sq_sum  += float(np.sum(im ** 2))
-            if imag_abs_sum > 0:
-                num = imag_sum ** 2 - imag_sq_sum
-                den = imag_abs_sum ** 2 - imag_sq_sum
-                if den > 0:
-                    conn[i, j] = conn[j, i] = abs(num / den)
-    np.fill_diagonal(conn, 1.0)
-    return conn
+                imag_sum     = float(np.sum(im))
+                imag_abs_sum = float(np.sum(np.abs(im)))
+                imag_sq_sum  = float(np.sum(im ** 2))
+                if imag_abs_sum > 0:
+                    num = imag_sum ** 2 - imag_sq_sum
+                    den = imag_abs_sum ** 2 - imag_sq_sum
+                    if den > 0:
+                        conn[i, j] = conn[j, i] = abs(num / den)
+        np.fill_diagonal(conn, 1.0)
+        all_conn[ep] = conn
+    return all_conn
 
 
 def _compute_correlation(epochs_data, sfreq, fmin, fmax):
+    """Return per-epoch correlation matrices stacked as (n_epochs, n_ch, n_ch)."""
     n_epochs, n_ch, n_times = epochs_data.shape
     nyq  = sfreq / 2.0
     low  = fmin / nyq
     high = min(fmax / nyq, 0.99)
     b, a = butter(4, [low, high], btype='band')
-    corr_sum = np.zeros((n_ch, n_ch))
+    all_conn = np.zeros((n_epochs, n_ch, n_ch))
     for ep in range(n_epochs):
         filtered = np.array([filtfilt(b, a, epochs_data[ep, ch]) for ch in range(n_ch)])
-        corr_sum += np.abs(np.corrcoef(filtered))
-    conn = corr_sum / n_epochs
-    np.fill_diagonal(conn, 1.0)
-    return conn
+        conn = np.abs(np.corrcoef(filtered))
+        np.fill_diagonal(conn, 1.0)
+        all_conn[ep] = conn
+    return all_conn
 
 
 def _compute_all_connectivity(epochs_clean, logger):
+    """
+    Compute per-epoch connectivity matrices for all active measures and bands.
+
+    Returns
+    -------
+    conn_per_epoch : dict {(measure, band): ndarray (n_epochs, n_ch, n_ch)}
+    dist_per_epoch : dict {(measure, band): ndarray (n_epochs, n_ch, n_ch)}
+    ch_names       : list of str
+    """
     epochs_data = epochs_clean.get_data()
     sfreq       = epochs_clean.info['sfreq']
     ch_names    = list(epochs_clean.ch_names)
+    n_epochs, n_ch, _ = epochs_data.shape
 
-    fns = {
-        'coherence':   _compute_coherence,
-        'wpli':        _compute_wpli,
-        'correlation': _compute_correlation,
-    }
-    conn_matrices = {}
-    dist_matrices = {}
+    fns = {}
+    if config.COMPUTE_COHERENCE:
+        fns['coherence'] = _compute_coherence
+    if config.COMPUTE_WPLI:
+        fns['wpli'] = _compute_wpli
+    fns['correlation'] = _compute_correlation
+
+    conn_per_epoch = {}
+    dist_per_epoch = {}
     total = len(fns) * len(config.FREQ_BANDS)
     count = 0
 
@@ -427,19 +443,21 @@ def _compute_all_connectivity(epochs_clean, logger):
             count += 1
             logger.debug(f"Connectivity [{count}/{total}] {m_name}/{b_name}...")
             try:
-                conn = m_func(epochs_data, sfreq, fmin, fmax)
-                conn = np.clip(np.nan_to_num(conn, nan=0.0), 0, 1)
-                dist = np.clip(1.0 - conn, 0, 1)
-                np.fill_diagonal(dist, 0.0)
-                conn_matrices[(m_name, b_name)] = conn
-                dist_matrices[(m_name, b_name)] = dist
+                # all_conn shape: (n_epochs, n_ch, n_ch)
+                all_conn = m_func(epochs_data, sfreq, fmin, fmax)
+                all_conn = np.clip(np.nan_to_num(all_conn, nan=0.0), 0, 1)
+                all_dist = np.clip(1.0 - all_conn, 0, 1)
+                for ep in range(n_epochs):
+                    np.fill_diagonal(all_dist[ep], 0.0)
+                conn_per_epoch[(m_name, b_name)] = all_conn
+                dist_per_epoch[(m_name, b_name)] = all_dist
             except Exception as e:
                 logger.warning(f"Connectivity {m_name}/{b_name} FAILED: {e}")
-                dummy = np.zeros((len(ch_names), len(ch_names)))
-                conn_matrices[(m_name, b_name)] = dummy
-                dist_matrices[(m_name, b_name)] = dummy
+                dummy = np.zeros((n_epochs, n_ch, n_ch))
+                conn_per_epoch[(m_name, b_name)] = dummy
+                dist_per_epoch[(m_name, b_name)] = dummy
 
-    return conn_matrices, dist_matrices, ch_names
+    return conn_per_epoch, dist_per_epoch, ch_names
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -502,18 +520,45 @@ def _compute_persistence(dist_matrix, ch_names):
     return dgms, generators
 
 
-def _compute_betti_curves(diagrams):
-    eps_values = np.linspace(0, 1.0, config.N_FILT_STEPS)
+def _dist_to_rho_mapper(dist_matrix):
+    """
+    Build a function that converts distance values → edge density ρ.
+
+    ρ = k / C(N,2), where k = number of edges with distance ≤ d.
+    Edges are added in order of increasing distance (= decreasing correlation),
+    so ρ = 0 means no edges, ρ = 1 means fully connected.
+    """
+    n = dist_matrix.shape[0]
+    n_edges = n * (n - 1) // 2
+    upper = dist_matrix[np.triu_indices(n, k=1)]
+    sorted_dists = np.sort(upper)
+
+    def mapper(d):
+        return float(np.searchsorted(sorted_dists, d, side='right')) / n_edges
+
+    return mapper
+
+
+def _compute_betti_curves(diagrams, rho_mapper):
+    """
+    Compute Betti curves with edge density ρ as the filtration parameter.
+
+    Parameters
+    ----------
+    diagrams   : list of ndarray — ripser persistence diagrams
+    rho_mapper : callable — maps distance value → ρ ∈ [0, 1]
+    """
+    rho_values = np.linspace(0, 1.0, config.N_FILT_STEPS)
     betti = {}
     for dim, dgm in enumerate(diagrams):
         counts = np.zeros(config.N_FILT_STEPS)
         if dgm.size > 0:
-            for birth, death in dgm:
-                if not np.isfinite(death):
-                    death = 1.0
-                counts[(eps_values >= birth) & (eps_values < death)] += 1
+            for birth_eps, death_eps in dgm:
+                birth_rho = rho_mapper(birth_eps)
+                death_rho = 1.0 if not np.isfinite(death_eps) else rho_mapper(death_eps)
+                counts[(rho_values >= birth_rho) & (rho_values < death_rho)] += 1
         betti[dim] = counts
-    return eps_values, betti
+    return rho_values, betti
 
 
 def _compute_betti_features(eps_values, betti_curve):
@@ -536,22 +581,59 @@ def _compute_betti_features(eps_values, betti_curve):
     return {'auc': auc, 'slope': slope, 'kurtosis': kurt}
 
 
-def _run_tda_pipeline(dist_matrices, ch_names):
+def _run_tda_pipeline(dist_per_epoch, ch_names):
+    """
+    Run TDA on per-epoch distance matrices.
+
+    For each (measure, band):
+      - Run ripser on each epoch's distance matrix
+      - Convert filtration parameter from distance ε → edge density ρ
+      - Compute Betti curves per epoch in ρ space
+      - Average Betti curves across epochs
+
+    Parameters
+    ----------
+    dist_per_epoch : dict {(measure, band): ndarray (n_epochs, n_ch, n_ch)}
+    ch_names       : list of str
+    """
+    rho_values  = np.linspace(0, 1.0, config.N_FILT_STEPS)
     tda_results = {}
-    for key, dist in dist_matrices.items():
-        dgms, generators = _compute_persistence(dist, ch_names)
-        eps_values, betti = _compute_betti_curves(dgms)
+
+    for key, dist_stack in dist_per_epoch.items():
+        n_epochs = dist_stack.shape[0]
+        betti_sum   = {0: np.zeros(config.N_FILT_STEPS),
+                       1: np.zeros(config.N_FILT_STEPS)}
+        valid_epochs = 0
+
+        for ep in range(n_epochs):
+            dist_matrix = dist_stack[ep]
+            if np.all(dist_matrix == 0) or np.all(dist_matrix == 1):
+                continue
+            rho_mapper          = _dist_to_rho_mapper(dist_matrix)
+            dgms, _             = _compute_persistence(dist_matrix, ch_names)
+            _, betti            = _compute_betti_curves(dgms, rho_mapper)
+            for dim in [0, 1]:
+                if dim in betti:
+                    betti_sum[dim] += betti[dim]
+            valid_epochs += 1
+
+        if valid_epochs == 0:
+            mean_betti = {0: np.zeros(config.N_FILT_STEPS),
+                          1: np.zeros(config.N_FILT_STEPS)}
+        else:
+            mean_betti = {dim: betti_sum[dim] / valid_epochs for dim in [0, 1]}
+
         features = {
-            f'B{dim}': _compute_betti_features(eps_values, betti[dim])
-            for dim in [0, 1] if dim in betti
+            f'B{dim}': _compute_betti_features(rho_values, mean_betti[dim])
+            for dim in [0, 1]
         }
         tda_results[key] = {
-            'diagrams':   dgms,
-            'generators': generators,
-            'eps_values': eps_values,
-            'betti':      betti,
-            'features':   features,
+            'rho_values':  rho_values,
+            'betti':       mean_betti,
+            'n_epochs':    valid_epochs,
+            'features':    features,
         }
+
     return tda_results
 
 
@@ -571,7 +653,8 @@ def _extract_betti_features(tda_results):
             'kurtosis_b1': b1_feats['kurtosis'],
             'betti_0':     np.array(r['betti'].get(0, [])),
             'betti_1':     np.array(r['betti'].get(1, [])),
-            'eps':         np.array(r['eps_values']),
+            'rho':         np.array(r['rho_values']),
+            'n_epochs':    r.get('n_epochs', 0),
         }
     return subject_features
 
@@ -774,50 +857,58 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
                         f"{len(ch_names)} channels)")
 
         # ── Step 2: Connectivity ──────────────────────────────────────────────
+        n_measures = len(config.CONN_MEASURES) * len(config.FREQ_BANDS)
         if _cache_exists(cache_dir, 'conn_matrices.npz', 'dist_matrices.npz'):
             logger.info("[2/5] Connectivity — loading from cache")
-            conn_matrices = _load_npz(cache_dir, 'conn_matrices')
-            dist_matrices = _load_npz(cache_dir, 'dist_matrices')
+            conn_per_epoch = _load_npz(cache_dir, 'conn_matrices')
+            dist_per_epoch = _load_npz(cache_dir, 'dist_matrices')
         else:
-            logger.info("[2/5] Computing connectivity (15 matrices)...")
-            conn_matrices, dist_matrices, ch_names = _compute_all_connectivity(epochs_clean, logger)
-            _save_npz(cache_dir, 'conn_matrices', conn_matrices)
-            _save_npz(cache_dir, 'dist_matrices', dist_matrices)
+            logger.info(f"[2/5] Computing connectivity ({n_measures} measure/band combinations)...")
+            conn_per_epoch, dist_per_epoch, ch_names = _compute_all_connectivity(epochs_clean, logger)
+            _save_npz(cache_dir, 'conn_matrices', conn_per_epoch)
+            _save_npz(cache_dir, 'dist_matrices', dist_per_epoch)
             _write_key(cache_dir, 'connectivity', conn_key)
 
+        # Mean matrices (epoch-average) used for graph theory
+        conn_matrices = {k: v.mean(axis=0) for k, v in conn_per_epoch.items()}
+
         # Surface Laplacian connectivity
-        if _cache_exists(cache_dir, 'conn_csd.npz', 'dist_csd.npz'):
-            logger.debug("  Surface Laplacian connectivity — loading from cache")
-            conn_sl = _load_npz(cache_dir, 'conn_csd')
-            dist_sl = _load_npz(cache_dir, 'dist_csd')
-        else:
-            epochs_sl = _apply_csd(epochs_clean, logger)
-            if epochs_sl is not None:
-                logger.info("  Computing Surface Laplacian connectivity...")
-                conn_sl, dist_sl, _ = _compute_all_connectivity(epochs_sl, logger)
-                _save_npz(cache_dir, 'conn_csd', conn_sl)
-                _save_npz(cache_dir, 'dist_csd', dist_sl)
+        conn_sl = dist_sl = dist_per_epoch_sl = None
+        if config.COMPUTE_SURFACE_LAPLACIAN:
+            if _cache_exists(cache_dir, 'conn_csd.npz', 'dist_csd.npz'):
+                logger.debug("  Surface Laplacian connectivity — loading from cache")
+                conn_per_epoch_sl = _load_npz(cache_dir, 'conn_csd')
+                dist_per_epoch_sl = _load_npz(cache_dir, 'dist_csd')
             else:
-                conn_sl = dist_sl = None
+                epochs_sl = _apply_csd(epochs_clean, logger)
+                if epochs_sl is not None:
+                    logger.info("  Computing Surface Laplacian connectivity...")
+                    conn_per_epoch_sl, dist_per_epoch_sl, _ = _compute_all_connectivity(epochs_sl, logger)
+                    _save_npz(cache_dir, 'conn_csd', conn_per_epoch_sl)
+                    _save_npz(cache_dir, 'dist_csd', dist_per_epoch_sl)
+            if dist_per_epoch_sl is not None:
+                conn_sl = {k: v.mean(axis=0) for k, v in conn_per_epoch_sl.items()}
+                dist_sl = {k: v.mean(axis=0) for k, v in dist_per_epoch_sl.items()}
 
         # ── Step 3: TDA ───────────────────────────────────────────────────────
         if _cache_exists(cache_dir, 'tda_results.pkl'):
             logger.info("[3/5] TDA — loading from cache")
             tda_results = _load_pkl(cache_dir, 'tda_results.pkl')
         else:
-            logger.info("[3/5] Running TDA pipeline...")
-            tda_results = _run_tda_pipeline(dist_matrices, ch_names)
+            logger.info("[3/5] Running TDA pipeline (per-epoch, then averaging Betti curves)...")
+            tda_results = _run_tda_pipeline(dist_per_epoch, ch_names)
             _save_pkl(cache_dir, 'tda_results.pkl', tda_results)
             _write_key(cache_dir, 'tda', tda_key)
 
         # TDA on Surface Laplacian
-        if conn_sl is not None:
+        tda_sl = None
+        if config.COMPUTE_SURFACE_LAPLACIAN and dist_per_epoch_sl is not None:
             if _cache_exists(cache_dir, 'tda_csd.pkl'):
                 logger.debug("  Surface Laplacian TDA — loading from cache")
                 tda_sl = _load_pkl(cache_dir, 'tda_csd.pkl')
             else:
                 logger.info("  Running TDA on Surface Laplacian data...")
-                tda_sl = _run_tda_pipeline(dist_sl, ch_names)
+                tda_sl = _run_tda_pipeline(dist_per_epoch_sl, ch_names)
                 _save_pkl(cache_dir, 'tda_csd.pkl', tda_sl)
 
         # ── Step 4: Betti features (group analysis) ───────────────────────────
@@ -832,7 +923,7 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
             logger.info("Saved betti_features.pkl")
 
         # Surface Laplacian betti features
-        if conn_sl is not None:
+        if config.COMPUTE_SURFACE_LAPLACIAN and tda_sl is not None:
             if _cache_exists(cache_dir, 'betti_features_csd.pkl'):
                 logger.debug("  Surface Laplacian Betti features — loading from cache")
             else:
@@ -860,7 +951,7 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
             _write_key(cache_dir, 'graph', graph_key)
 
         # Surface Laplacian graph theory + density sweep
-        if conn_sl is not None:
+        if config.COMPUTE_SURFACE_LAPLACIAN and conn_sl is not None:
             if _cache_exists(cache_dir, 'graph_results_csd.pkl'):
                 logger.debug("  Surface Laplacian graph results — loading from cache")
             else:
@@ -877,12 +968,14 @@ def run_subject(mat_path: str, force: bool = False, figures: bool = False):
 
         # ── Figures (optional) ────────────────────────────────────────────────
         if figures:
+            # Mean conn/dist matrices passed to figures (averaged across epochs)
+            dist_matrices_mean = {k: v.mean(axis=0) for k, v in dist_per_epoch.items()}
             logger.info("Generating figures...")
             _generate_figures(
                 out_dir, ch_names,
-                conn_matrices, dist_matrices, tda_results, graph_results,
+                conn_matrices, dist_matrices_mean, tda_results, graph_results,
                 conn_sl=conn_sl, dist_sl=dist_sl,
-                tda_sl=tda_sl if conn_sl is not None else None,
+                tda_sl=tda_sl,
             )
 
         logger.info("STATUS: complete")
